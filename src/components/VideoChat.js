@@ -3,22 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import { Video, VideoOff, Mic, MicOff, SkipForward, X, Flag, Home, Users, Loader2, Wifi, WifiOff, Settings, Lock, HelpCircle, Mail, User, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
 import ConstantinELogo from './ui/Logo';
 
-// Backend URL - use environment variable or default to production domain
+// Backend URL - hardcoded localhost for dev, auto-detect for network
 const getBackendUrl = () => {
-  if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
-  // For local development
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8001';
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  
+  // ALWAYS use localhost:8001 for local development (works with IDE proxy)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const url = `${protocol}//localhost:8001`;
+    console.log('Using localhost backend:', url);
+    return url;
   }
-  // For production - use your domain
-  return 'https://stringstrange.online:8001';
+  
+  // For network access (192.168.x.x, etc.)
+  const url = `${protocol}//${hostname}:8001`;
+  console.log('Using network backend:', url);
+  return url;
 };
 const BACKEND_URL = getBackendUrl();
 const SUPPORT_EMAIL = 'sanskar05soni@gmail.com';
 
 const iceServers = [
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  // Public TURN servers for NAT traversal across different networks
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  }
 ];
 
 const detectNudity = (videoElement) => {
@@ -167,15 +187,28 @@ const VideoChat = () => {
     try {
       isWsConnectingRef.current = true;
       setIsWsConnecting(true);
+      setConnectionStatus('connecting');
+      
       const wsUrl = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
-      const ws = new WebSocket(`${wsUrl}/ws/${userId}`);
+      const fullUrl = `${wsUrl}/ws/${userId}`;
+      
+      console.log('🔌 Connecting to WebSocket:', fullUrl);
+      console.log('📍 Hostname:', window.location.hostname);
+      console.log('🔒 Protocol:', window.location.protocol);
+      
+      const ws = new WebSocket(fullUrl);
+      
       ws.onopen = () => {
+        console.log('✅ WebSocket connected!');
         wsRef.current = ws;
         setWsReady(true);
         setIsWsConnecting(false);
         isWsConnectingRef.current = false;
-        setConnectionStatus('connected');
+        setConnectionStatus('ready');
+        
+        // Send gender info
         ws.send(JSON.stringify({ type: 'set_gender', gender, genderPref }));
+        
         // Send pending find_match if waiting
         if (pendingFindMatchRef.current) {
           pendingFindMatchRef.current = false;
@@ -183,26 +216,47 @@ const VideoChat = () => {
           ws.send(JSON.stringify({ type: 'find_match', gender, genderPref }));
         }
       };
-      ws.onmessage = async (event) => { await handleWebSocketMessage(JSON.parse(event.data)); };
-      ws.onclose = () => {
+      
+      ws.onmessage = async (event) => { 
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📨 Received:', data.type);
+          await handleWebSocketMessage(data); 
+        } catch (err) {
+          console.error('Failed to parse message:', err);
+        }
+      };
+      
+      ws.onclose = (event) => {
+        console.log('❌ WebSocket closed:', event.code, event.reason);
         wsRef.current = null;
         setWsReady(false);
         setIsWsConnecting(false);
         isWsConnectingRef.current = false;
+        
         if (shouldReconnectRef.current) {
           setConnectionStatus('reconnecting');
           if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-          reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(), 1200);
-        } else { setConnectionStatus('idle'); }
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('🔄 Attempting reconnection...');
+            connectWebSocket();
+          }, 2000);
+        } else { 
+          setConnectionStatus('idle'); 
+        }
       };
-      ws.onerror = () => {
-        setConnectionStatus('reconnecting');
-        setIsWsConnecting(false);
-        isWsConnectingRef.current = false;
+      
+      ws.onerror = (error) => {
+        console.error('⚠️ WebSocket error:', error);
+        console.log('Backend URL was:', BACKEND_URL);
+        // Don't change status here - let onclose handle it
       };
+      
     } catch (e) {
+      console.error('💥 WebSocket exception:', e);
       setIsWsConnecting(false);
       isWsConnectingRef.current = false;
+      setConnectionStatus('error');
     }
   };
 
@@ -252,15 +306,51 @@ const VideoChat = () => {
       }
     };
     pc.onconnectionstatechange = () => {
+      console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') handlePeerDisconnected();
+    };
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        // Attempt ICE restart if connection fails
+        if (pc.connectionState !== 'closed') {
+          console.log('ICE failed, attempting restart...');
+        }
+      }
+    };
+    pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', pc.iceGatheringState);
     };
     peerConnectionRef.current = pc;
   };
 
   const createOffer = async () => {
     try {
-      const offer = await peerConnectionRef.current.createOffer();
-      await peerConnectionRef.current.setLocalDescription(offer);
+      const pc = peerConnectionRef.current;
+      if (!pc) return;
+
+      // Wait for ICE gathering to complete before sending offer
+      await new Promise((resolve) => {
+        const checkState = () => {
+          if (pc.iceGatheringState === 'complete') {
+            resolve();
+          } else {
+            const handler = () => {
+              if (pc.iceGatheringState === 'complete') {
+                pc.removeEventListener('icegatheringstatechange', handler);
+                resolve();
+              }
+            };
+            pc.addEventListener('icegatheringstatechange', handler);
+            // Fallback timeout in case gathering stalls
+            setTimeout(resolve, 3000);
+          }
+        };
+        checkState();
+      });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
       if (wsRef.current) wsRef.current.send(JSON.stringify({ type: 'offer', offer }));
     } catch (e) { console.error('Offer error:', e); }
   };
@@ -304,16 +394,24 @@ const VideoChat = () => {
   const handleChatEnded = () => { handlePeerDisconnected(); };
 
   const findMatch = () => {
+    // Ensure media is ready
     if (!localStreamRef.current || localStreamRef.current.getVideoTracks().length === 0) {
-      initializeMedia().then((ok) => { if (ok) findMatch(); });
+      console.log('Initializing media first...');
+      initializeMedia().then((ok) => { 
+        if (ok) findMatch(); 
+      });
       return;
     }
+    
     const ws = wsRef.current;
+    
     if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log('🔍 Finding match...');
       setConnectionStatus('searching');
       setMessages([]);
       ws.send(JSON.stringify({ type: 'find_match', gender, genderPref }));
     } else {
+      console.log('WebSocket not ready, connecting first...');
       setConnectionStatus('connecting');
       pendingFindMatchRef.current = true;
       connectWebSocket();
