@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Video, VideoOff, Mic, MicOff, SkipForward, X, Flag, Home, Users, Loader2, Wifi, WifiOff, Settings, Lock, HelpCircle, Mail, User, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
 import ConstantinELogo from './ui/Logo';
 
-// Dynamic backend URL using same hostname as frontend
+// Backend URL - use environment variable or default to production domain
 const getBackendUrl = () => {
   if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:8001`;
+  // For local development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:8001';
+  }
+  // For production - use your domain
+  return 'https://stringstrange.online:8001';
 };
 const BACKEND_URL = getBackendUrl();
 const SUPPORT_EMAIL = 'sanskar05soni@gmail.com';
