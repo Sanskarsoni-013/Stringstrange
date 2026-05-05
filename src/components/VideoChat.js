@@ -3,19 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { Video, VideoOff, Mic, MicOff, SkipForward, X, Flag, Home, Users, Loader2, Wifi, WifiOff, Settings, Lock, HelpCircle, Mail, User, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
 import ConstantinELogo from './ui/Logo';
 
-// Backend URL - hardcoded localhost for dev, auto-detect for network
+// Backend URL - check env first, then auto-detect
 const getBackendUrl = () => {
+  // Use env variable if set (for production/Vercel deployment)
+  if (process.env.REACT_APP_BACKEND_URL) {
+    console.log('Using env BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
+    return process.env.REACT_APP_BACKEND_URL;
+  }
+
   const hostname = window.location.hostname;
   const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  
-  // ALWAYS use localhost:8001 for local development (works with IDE proxy)
+
+  // ALWAYS use localhost:8001 for local development
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     const url = `${protocol}//localhost:8001`;
     console.log('Using localhost backend:', url);
     return url;
   }
-  
-  // For network access (192.168.x.x, etc.)
+
+  // For local network access (192.168.x.x, etc.)
   const url = `${protocol}//${hostname}:8001`;
   console.log('Using network backend:', url);
   return url;
