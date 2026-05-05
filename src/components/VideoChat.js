@@ -104,6 +104,7 @@ const VideoChat = () => {
   const isWsConnectingRef = useRef(false);
   const nudityIntervalRef = useRef(null);
   const pendingFindMatchRef = useRef(false);
+  const justEndedChatRef = useRef(false);
 
   useEffect(() => { if (!nickname) navigate('/'); }, [nickname, navigate]);
 
@@ -281,7 +282,19 @@ const VideoChat = () => {
       case 'answer': await handleAnswer(message.answer); break;
       case 'ice_candidate': await handleIceCandidate(message.candidate); break;
       case 'peer_disconnected': handlePeerDisconnected(); break;
-      case 'chat_ended': handleChatEnded(); break;
+      case 'chat_ended':
+        if (justEndedChatRef.current) {
+          justEndedChatRef.current = false; // We initiated, just go to ready
+          setIsConnected(false);
+          setPartnerNickname('');
+          setPartnerGender('');
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+          if (peerConnectionRef.current) { peerConnectionRef.current.close(); peerConnectionRef.current = null; }
+          setConnectionStatus('ready');
+        } else {
+          handleChatEnded(); // Other user ended, auto-search
+        }
+        break;
       case 'chat_message':
         setMessages(prev => [...prev, {
           from: 'partner', text: message.text,
@@ -381,23 +394,26 @@ const VideoChat = () => {
     catch (e) { console.error('ICE error:', e); }
   };
 
-  const handlePeerDisconnected = () => {
+  const handlePeerDisconnected = (shouldAutoSearch = true) => {
     setIsConnected(false);
     setPartnerNickname('');
     setPartnerGender('');
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     if (peerConnectionRef.current) { peerConnectionRef.current.close(); peerConnectionRef.current = null; }
-    // Automatically find next match
-    setTimeout(() => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        setConnectionStatus('searching');
-        setMessages([]);
-        wsRef.current.send(JSON.stringify({ type: 'find_match', gender, genderPref }));
-      }
-    }, 500);
+    // Automatically find next match only for the other user (not the one who clicked End)
+    if (shouldAutoSearch) {
+      setTimeout(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          console.log('🔄 Auto-searching after peer disconnect...');
+          setConnectionStatus('searching');
+          setMessages([]);
+          wsRef.current.send(JSON.stringify({ type: 'find_match', gender, genderPref }));
+        }
+      }, 500);
+    }
   };
 
-  const handleChatEnded = () => { handlePeerDisconnected(); };
+  const handleChatEnded = () => { handlePeerDisconnected(true); };
 
   const findMatch = () => {
     // Ensure media is ready
@@ -436,8 +452,9 @@ const VideoChat = () => {
   };
 
   const endChat = () => {
+    justEndedChatRef.current = true; // Mark that WE initiated the end
     if (wsRef.current) wsRef.current.send(JSON.stringify({ type: 'end_chat' }));
-    handleChatEnded();
+    handlePeerDisconnected(false); // Don't auto-search, user chose to end
   };
 
   const sendMessage = () => {
