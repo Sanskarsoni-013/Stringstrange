@@ -7,9 +7,7 @@ import ConstantinELogo from './ui/Logo';
 const getBackendUrl = () => {
   if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
   const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  let hostname = window.location.hostname;
-  // Force 127.0.0.1 for localhost to avoid network resolution issues
-  if (hostname === 'localhost') hostname = '127.0.0.1';
+  const hostname = window.location.hostname;
   return `${protocol}//${hostname}:8001`;
 };
 const BACKEND_URL = getBackendUrl();
