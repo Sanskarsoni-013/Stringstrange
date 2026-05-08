@@ -536,164 +536,239 @@ const VideoChat = () => {
   if (!nickname) return null;
 
   return (
-    <div className="videochat-root">
-      {/* GENDER SETUP MODAL */}
-      {showGenderSetup && (
-        <div className="vc-modal-overlay">
-          <div className="vc-modal vc-gender-modal">
-            <h3>Welcome to StringStrange</h3>
-            <p style={{fontSize:'12px',color:'#9a9aaa',marginTop:'-4px'}}>by ConstantinE</p>
-            <p>Tell us about yourself to find better matches.</p>
-            <div className="vc-gender-section">
-              <label>I am:</label>
-              <div className="vc-gender-options">
-                <button className={"vc-gender-btn" + (gender === "male" ? " active" : "")} onClick={() => setGender("male")}><User size={16}/> Male</button>
-                <button className={"vc-gender-btn" + (gender === "female" ? " active" : "")} onClick={() => setGender("female")}><User size={16}/> Female</button>
-              </div>
-            </div>
-            <div className="vc-gender-section">
-              <label>I want to chat with:</label>
-              <div className="vc-gender-options">
-                <button className={"vc-gender-btn" + (genderPref === "any" ? " active" : "")} onClick={() => setGenderPref("any")}>Anyone</button>
-                <button className={"vc-gender-btn" + (genderPref === "male" ? " active" : "")} onClick={() => setGenderPref("male")}><User size={16}/> Male</button>
-                <button className={"vc-gender-btn" + (genderPref === "female" ? " active" : "")} onClick={() => setGenderPref("female")}><User size={16}/> Female</button>
-              </div>
-            </div>
-            <button className="vc-modal-primary" onClick={() => saveGender(gender, genderPref)} disabled={!gender}>Start Matching</button>
-          </div>
-        </div>
-      )}
-
-      {/* NUDITY ALERT */}
-      {nudityAlert && (
-        <div className="vc-nudity-overlay">
-          <AlertTriangle size={48} />
-          <h3>Inappropriate Content Detected</h3>
-          <p>Auto-disconnecting for your safety.</p>
-        </div>
-      )}
-
-      {/* TOAST */}
-      {toast && (
-        <div className={"vc-toast vc-toast-" + toast.type}>
-          {toast.type === "success" ? <CheckCircle size={16}/> : <AlertTriangle size={16}/>}
-          {toast.text}
-        </div>
-      )}
-
+    <div className="otv-container">
       {/* HEADER */}
-      <header className="vc-header">
-        <div className="vc-header-left">
-          <button className="vc-back-btn" onClick={() => navigate("/")}><Home size={18} /><span>Home</span></button>
-          <div className="vc-logo-small"><ConstantinELogo size={22} /><div className="vc-logo-text"><span>StringStrange</span><small>by ConstantinE</small></div></div>
-        </div>
-        <div className="vc-header-right">
-          <div className="vc-online-count"><span className="vc-online-dot" /><Users size={14} /><span>{stats.activeUsers || "--"} online</span></div>
-          <div className={"vc-status-badge " + (isConnected ? "vc-status-live" : wsReady ? "vc-status-ready" : isSearching ? "vc-status-searching" : connectionStatus === "connecting" ? "vc-status-connecting" : "")}>
-            {isConnected ? <Wifi size={12} /> : <WifiOff size={12} />}
-            {isConnected ? "Live" : isSearching ? "Searching..." : connectionStatus === "connecting" ? "Connecting..." : wsReady ? "Ready" : isWsConnecting || connectionStatus === "reconnecting" ? "Connecting..." : "Offline"}
+      <header className="otv-header">
+        <div className="otv-header-left">
+          <button className="otv-header-icon-btn"><Grid size={18} /></button>
+          <div className="otv-header-tab">
+            <span className="otv-header-tab-text">OmeTV Video Chat — Omegle: Ra...</span>
+            <div className="otv-header-tab-close"><X size={12} /></div>
           </div>
-          <button className="vc-settings-btn" onClick={() => setShowGenderSetup(true)} title="Preferences"><Settings size={15} /></button>
-          <button className="vc-settings-btn" onClick={() => setShowHelp(true)} title="Help"><HelpCircle size={15} /></button>
+        </div>
+        <div className="otv-header-right">
+          <div className="otv-header-folder"><Folder size={16} /> All Bookmarks</div>
         </div>
       </header>
 
-      {/* OMETV STYLE LAYOUT */}
-      <main className="ometv-main">
-        <div className="ometv-video-grid">
-          {/* STRANGER VIDEO (LEFT) */}
-          <div className="ometv-video-box stranger-box">
-            <video ref={remoteVideoRef} autoPlay playsInline className="ometv-video" />
-            <div className="ometv-tag stranger-tag">Stranger</div>
-            
-            {/* IDLE/SEARCHING OVERLAY */}
-            {!isConnected && (
-              <div className="ometv-overlay-screen">
-                {!isSearching ? (
-                  <button className="ometv-big-start-btn" onClick={startSearching}>
-                    <Play size={48} fill="currentColor" />
-                    <span>START</span>
-                  </button>
-                ) : (
-                  <div className="ometv-searching-status">
-                    <div className="ometv-spinner-large" />
-                    <p>Looking for a stranger...</p>
-                    <button className="ometv-cancel-btn" onClick={endChat}>Stop Search</button>
-                  </div>
-                )}
-              </div>
-            )}
+      {/* URL BAR (BROWSER STYLE) */}
+      <div className="otv-browser-bar">
+        <div className="otv-browser-controls">
+          <Home size={16} />
+          <div className="otv-url-field">https://ome.tv/#app</div>
+        </div>
+      </div>
 
-            {/* CHAT INTERFACE (BOTTOM LEFT) */}
-            {(isConnected || isSearching) && (
-              <div className="ometv-chat-container">
-                <div className="ometv-messages-list" id="chat-messages-container">
-                  {messages.map((m, i) => (
-                    <div key={i} className={"ometv-message-line " + (m.from === "me" ? "is-me" : "is-them")}>
-                      <span className="ometv-sender">{m.from === 'me' ? 'You:' : 'Stranger:'}</span>
-                      <span className="ometv-text">{m.text}</span>
-                    </div>
-                  ))}
-                  {messages.length === 0 && isConnected && (
-                    <div className="ometv-system-tip">You are now chatting with a stranger. Say hi!</div>
-                  )}
+      {/* MAIN CONTENT */}
+      <main className="otv-main">
+        <div className="otv-video-grid">
+          {/* LEFT PANEL: STRANGER OR LOGO */}
+          <div className="otv-panel otv-panel-left">
+            {isConnected ? (
+              <video ref={remoteVideoRef} autoPlay playsInline className="otv-video" />
+            ) : (
+              <div className="otv-placeholder">
+                <div className="otv-logo-section">
+                  <div className="otv-logo-tv">
+                    <span className="otv-logo-text">Ome</span>
+                    <span className="otv-logo-subtext">TV</span>
+                  </div>
+                  <div className="otv-online-count">
+                    <span className="otv-online-dot" />
+                    {stats.activeUsers ? stats.activeUsers.toLocaleString() : "280,268"} users online
+                  </div>
                 </div>
-                <div className="ometv-input-area">
-                  <input 
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && sendMessage()}
-                    placeholder="Type message..."
-                    className="ometv-chat-input"
-                    disabled={!isConnected}
-                  />
-                  <button className="ometv-chat-send-btn" onClick={sendMessage} disabled={!isConnected || !chatInput.trim()}>
-                    <Send size={18} />
-                  </button>
+                <div className="otv-app-buttons">
+                  <div className="otv-app-btn">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" height="40" />
+                  </div>
+                  <div className="otv-app-btn">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" height="40" />
+                  </div>
                 </div>
               </div>
             )}
+            {isConnected && <div className="otv-video-tag">Stranger</div>}
           </div>
 
-          {/* YOUR VIDEO (RIGHT) */}
-          <div className="ometv-video-box local-box">
-            <video ref={localVideoRef} autoPlay muted playsInline className="ometv-video" />
-            {!isVideoEnabled && (
-              <div className="ometv-camera-off">
-                <VideoOff size={64} strokeWidth={1} />
-                <p>Camera is Off</p>
-              </div>
-            )}
-            <div className="ometv-tag local-tag">You</div>
+          {/* RIGHT PANEL: LOCAL VIDEO */}
+          <div className="otv-panel otv-panel-right">
+            <video ref={localVideoRef} autoPlay muted playsInline className="otv-video" />
+            {!isVideoEnabled && <div className="otv-camera-off">Camera is off</div>}
+            <div className="otv-video-tag">You</div>
           </div>
         </div>
 
-        {/* OMETV CONTROL BAR */}
-        <div className="ometv-footer-bar">
-          <div className="ometv-footer-left">
-            <button className="ometv-action-btn stop-btn" onClick={endChat} disabled={!isSearching && !isConnected}>
-              <div className="ometv-icon-circle"><X size={20} /></div>
-              <span>STOP</span>
-            </button>
-          </div>
-          
-          <div className="ometv-footer-mid">
-            <button className={"ometv-toggle-btn " + (!isVideoEnabled ? "is-off" : "")} onClick={toggleVideo}>
-              {isVideoEnabled ? <Video size={20} /> : <VideoOff size={20} />}
-            </button>
-            <button className={"ometv-toggle-btn " + (!isAudioEnabled ? "is-off" : "")} onClick={toggleAudio}>
-              {isAudioEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-            </button>
+        {/* BOTTOM CONTROL BAR */}
+        <div className="otv-bottom-bar">
+          {/* LEFT: CONTROLS */}
+          <div className="otv-controls-side">
+            <div className="otv-main-buttons">
+              <button 
+                className={"otv-action-btn start-btn " + (isSearching ? "searching" : "")} 
+                onClick={isConnected ? nextPartner : findMatch}
+              >
+                {isConnected ? "Next" : "Start"}
+              </button>
+              <button 
+                className="otv-action-btn stop-btn" 
+                onClick={endChat}
+                disabled={!isSearching && !isConnected}
+              >
+                Stop
+              </button>
+              <button className="otv-select-btn" onClick={() => setShowGenderSetup(true)}>
+                <span className="otv-select-label">Country</span>
+                <span className="otv-select-val">🇮🇳</span>
+              </button>
+              <button className="otv-select-btn" onClick={() => setShowGenderSetup(true)}>
+                <span className="otv-select-label">I am</span>
+                <span className="otv-select-val">👦</span>
+              </button>
+            </div>
           </div>
 
-          <div className="ometv-footer-right">
-            <button className="ometv-action-btn next-btn" onClick={nextPartner} disabled={!isConnected && !isSearching}>
-              <span>NEXT</span>
-              <div className="ometv-icon-circle"><SkipForward size={20} /></div>
-            </button>
+          {/* RIGHT: CHAT area */}
+          <div className="otv-chat-side">
+            <div className="otv-chat-container">
+              {!isConnected && !isSearching && (
+                <div className="otv-rules-box">
+                  <div className="otv-rules-content">
+                    <div className="otv-rules-icon">Ome TV</div>
+                    <p>
+                      By pressing "Start", you agree to our <u>rules</u>. Rule violators will be banned. Please keep your face visible in the camera frame.
+                    </p>
+                  </div>
+                  <div className="otv-safety-link">
+                    <AlertTriangle size={14} color="#f97316" />
+                    <span>Safety Reminder</span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="otv-chat-history" id="chat-messages-container">
+                {messages.map((m, i) => (
+                  <div key={i} className={"otv-chat-msg " + (m.from === "me" ? "is-me" : "is-them")}>
+                    <span className="otv-msg-sender">{m.from === 'me' ? 'You:' : 'Stranger:'}</span>
+                    <span className="otv-msg-text">{m.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="otv-chat-input-wrapper">
+                <input 
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && sendMessage()}
+                  placeholder="Write a message"
+                  className="otv-chat-input"
+                />
+                <div className="otv-chat-emoji">😊</div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* GENDER SETUP MODAL (reusing for preferences) */}
+      {showGenderSetup && (
+        <div className="vc-modal-overlay">
+          <div className="vc-modal vc-gender-modal">
+            <h3>Match Preferences</h3>
+            <div className="vc-gender-section">
+              <label>I am:</label>
+              <div className="vc-gender-options">
+                <button className={"vc-gender-btn" + (gender === "male" ? " active" : "")} onClick={() => setGender("male")}>Male</button>
+                <button className={"vc-gender-btn" + (gender === "female" ? " active" : "")} onClick={() => setGender("female")}>Female</button>
+              </div>
+            </div>
+            <div className="vc-gender-section">
+              <label>Match with:</label>
+              <div className="vc-gender-options">
+                <button className={"vc-gender-btn" + (genderPref === "any" ? " active" : "")} onClick={() => setGenderPref("any")}>Anyone</button>
+                <button className={"vc-gender-btn" + (genderPref === "male" ? " active" : "")} onClick={() => setGenderPref("male")}>Male</button>
+                <button className={"vc-gender-btn" + (genderPref === "female" ? " active" : "")} onClick={() => setGenderPref("female")}>Female</button>
+              </div>
+            </div>
+            <button className="vc-modal-primary" onClick={() => saveGender(gender, genderPref)}>Save & Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Styles are applied in index.css or via <style> tag if preferred */}
+      <style>{`
+        .otv-container { height: 100vh; display: flex; flex-direction: column; background: #332b2b; color: #fff; overflow: hidden; }
+        .otv-header { height: 36px; background: #221a1a; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; font-size: 12px; }
+        .otv-header-left { display: flex; align-items: center; gap: 10px; height: 100%; }
+        .otv-header-tab { background: #332b2b; height: 30px; margin-top: 6px; border-radius: 8px 8px 0 0; padding: 0 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+        .otv-header-right { color: #888; display: flex; align-items: center; gap: 6px; }
+
+        .otv-browser-bar { height: 40px; background: #332b2b; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #222; }
+        .otv-browser-controls { display: flex; align-items: center; gap: 15px; width: 100%; }
+        .otv-url-field { flex: 1; background: #221a1a; border-radius: 20px; padding: 6px 15px; font-size: 12px; color: #aaa; }
+
+        .otv-main { flex: 1; display: flex; flex-direction: column; }
+        .otv-video-grid { flex: 1; display: flex; gap: 4px; padding: 4px; background: #111; }
+        .otv-panel { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+        .otv-video { width: 100%; height: 100%; object-fit: cover; }
+        .otv-video-tag { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 2px 10px; border-radius: 4px; font-size: 12px; }
+
+        .otv-placeholder { width: 100%; height: 100%; background: #2c2c2c; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .otv-logo-tv { background: #ff5722; width: 160px; height: 120px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .otv-logo-text { font-size: 48px; font-weight: 900; color: #fff; }
+        .otv-logo-subtext { font-size: 24px; font-weight: 900; color: #2e7d32; background: #fff; padding: 0 8px; border-radius: 4px; margin-top: 4px; }
+        .otv-online-count { margin-top: 20px; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .otv-online-dot { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; }
+        .otv-app-buttons { margin-top: 30px; display: flex; gap: 15px; }
+
+        .otv-bottom-bar { height: 180px; background: #fff; color: #333; display: flex; }
+        .otv-controls-side { width: 45%; padding: 15px; }
+        .otv-main-buttons { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; height: 100%; }
+        .otv-action-btn, .otv-select-btn { border: none; border-radius: 12px; font-size: 22px; font-weight: 700; cursor: pointer; transition: transform 0.1s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .otv-action-btn:active { transform: scale(0.98); }
+        .start-btn { background: #66bb6a; color: #fff; }
+        .stop-btn { background: #ffab91; color: #fff; }
+        .otv-select-btn { background: #f5f5f5; border: 1px solid #eee; }
+        .otv-select-label { font-size: 14px; color: #888; font-weight: 400; }
+        .otv-select-val { font-size: 20px; }
+
+        .otv-chat-side { flex: 1; padding: 0 5px 5px 0; }
+        .otv-chat-container { height: 100%; background: #fff; border-left: 1px solid #eee; display: flex; flex-direction: column; }
+        .otv-rules-box { padding: 12px; border-bottom: 1px solid #f5f5f5; }
+        .otv-rules-content { display: flex; gap: 10px; align-items: flex-start; }
+        .otv-rules-icon { background: #ff5722; color: #fff; padding: 2px 4px; border-radius: 4px; font-size: 10px; font-weight: 900; }
+        .otv-rules-content p { font-size: 12px; line-height: 1.4; color: #666; margin: 0; }
+        .otv-safety-link { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 11px; font-weight: 600; color: #f97316; }
+
+        .otv-chat-history { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+        .otv-chat-msg { font-size: 13px; }
+        .otv-msg-sender { font-weight: 800; margin-right: 5px; }
+        .is-me .otv-msg-sender { color: #3b82f6; }
+        .is-them .otv-msg-sender { color: #d97706; }
+
+        .otv-chat-input-wrapper { height: 44px; border-top: 1px solid #eee; display: flex; align-items: center; padding: 0 15px; }
+        .otv-chat-input { flex: 1; border: none; outline: none; font-size: 14px; color: #333; }
+        .otv-chat-emoji { font-size: 18px; color: #ccc; cursor: pointer; }
+
+        @media (max-width: 800px) {
+          .otv-bottom-bar { height: auto; flex-direction: column; }
+          .otv-controls-side, .otv-chat-side { width: 100%; }
+          .otv-controls-side { height: 160px; }
+          .otv-chat-side { height: 250px; }
+        }
+
+        /* Reusing some existing modal styles */
+        .vc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .vc-modal { background: #fff; color: #333; padding: 24px; border-radius: 16px; width: 320px; }
+        .vc-gender-section { margin: 15px 0; }
+        .vc-gender-options { display: flex; gap: 10px; margin-top: 8px; }
+        .vc-gender-btn { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; cursor: pointer; }
+        .vc-gender-btn.active { background: #ff5722; color: #fff; border-color: #ff5722; }
+        .vc-modal-primary { width: 100%; padding: 12px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+      `}</style>
+    </div>
+  );
+};
 
       {/* HELP MODAL */}
       {showHelp && (
@@ -871,63 +946,69 @@ const VideoChat = () => {
         .vc-status-ready { background: rgba(30,80,150,0.12); border-color: rgba(50,100,180,0.25); color: #6b8fc7; }
         .vc-status-connecting { background: rgba(80,180,200,0.12); border-color: rgba(100,200,220,0.25); color: #4db8d9; }
 
-        .ometv-main { flex: 1; display: flex; flex-direction: column; background: #fff; font-family: "Century Schoolbook", serif; position: relative; }
-        .ometv-video-grid { flex: 1; display: flex; background: #000; overflow: hidden; position: relative; }
+        .otv-container { height: 100vh; display: flex; flex-direction: column; background: #f4f4f4; color: #333; font-family: "Inter", sans-serif; }
         
-        .ometv-video-box { position: relative; flex: 1; background: #050505; border: 1px solid #111; overflow: hidden; }
-        .ometv-video { width: 100%; height: 100%; object-fit: cover; }
+        .otv-header { height: 40px; background: #332b2b; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; color: #aaa; border-bottom: 1px solid #222; }
+        .otv-header-icon { color: #fff; cursor: pointer; }
+        .otv-header-right { font-size: 11px; display: flex; align-items: center; gap: 5px; }
+
+        .otv-main { flex: 1; display: flex; flex-direction: column; background: #332b2b; }
+        .otv-video-grid { flex: 1; display: flex; gap: 4px; padding: 4px; background: #222; }
+        .otv-panel { flex: 1; background: #000; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .otv-video { width: 100%; height: 100%; object-fit: cover; }
+
+        .otv-placeholder { width: 100%; height: 100%; background: #222 url('https://www.transparenttextures.com/patterns/dark-matter.png'); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        .otv-logo-section { text-align: center; margin-bottom: 40px; }
+        .otv-logo-tv { background: #ff5722; width: 150px; height: 110px; border-radius: 20px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.2); }
+        .otv-logo-tv::before, .otv-logo-tv::after { content: ''; position: absolute; top: -20px; width: 4px; height: 30px; background: #ff5722; border-radius: 2px; transform: rotate(-20deg); }
+        .otv-logo-tv::after { left: auto; right: 40px; transform: rotate(20deg); }
+        .otv-logo-text { color: #fff; font-size: 42px; font-weight: 900; line-height: 1; }
+        .otv-logo-subtext { color: #2e7d32; font-size: 24px; font-weight: 900; background: #fff; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
         
-        .ometv-tag { position: absolute; top: 15px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; z-index: 10; }
-        .stranger-tag { left: 15px; }
-        .local-tag { right: 15px; }
+        .otv-online-count { margin-top: 15px; color: #fff; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .otv-online-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; }
 
-        .ometv-overlay-screen { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
-        .ometv-big-start-btn { width: 160px; height: 160px; border-radius: 50%; border: none; background: #22c55e; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 0 40px rgba(34, 197, 94, 0.4); transition: all 0.2s; }
-        .ometv-big-start-btn span { font-size: 20px; font-weight: 900; letter-spacing: 0.1em; }
-        .ometv-big-start-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+        .otv-app-buttons { display: flex; gap: 15px; }
+        .otv-app-btn { background: #000; border: 1px solid #444; border-radius: 10px; padding: 8px 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .otv-btn-icon { font-size: 24px; color: #fff; }
+        .otv-btn-txt { color: #fff; font-size: 10px; line-height: 1.2; text-align: left; }
+        .otv-btn-txt span { display: block; font-size: 16px; font-weight: 700; }
 
-        .ometv-searching-status { text-align: center; color: #fff; }
-        .ometv-spinner-large { width: 60px; height: 60px; border: 6px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
-        .ometv-cancel-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 20px; border-radius: 20px; cursor: pointer; margin-top: 15px; }
-
-        .ometv-chat-container { position: absolute; bottom: 20px; left: 20px; width: 320px; max-height: 40%; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow: hidden; z-index: 30; }
-        .ometv-messages-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
-        .ometv-message-line { font-size: 13px; line-height: 1.4; word-break: break-word; }
-        .ometv-sender { font-weight: 800; margin-right: 6px; }
-        .is-me .ometv-sender { color: #3b82f6; }
-        .is-them .ometv-sender { color: #facc15; }
-        .ometv-text { color: #fff; }
-        .ometv-system-tip { font-size: 11px; color: #aaa; text-align: center; font-style: italic; margin-top: 5px; }
-
-        .ometv-input-area { display: flex; padding: 8px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); }
-        .ometv-chat-input { flex: 1; background: transparent; border: none; color: #fff; font-size: 13px; padding: 4px 10px; outline: none; }
-        .ometv-chat-send-btn { background: none; border: none; color: #3b82f6; cursor: pointer; padding: 4px; }
-
-        .ometv-camera-off { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a; color: #333; gap: 10px; }
-
-        .ometv-footer-bar { height: 90px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
-        .ometv-action-btn { border: none; background: none; display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 900; font-size: 16px; letter-spacing: 0.05em; transition: all 0.2s; }
-        .ometv-icon-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
+        .otv-bottom-bar { height: 240px; background: #f0f0f0; display: flex; border-top: 1px solid #ccc; }
+        .otv-buttons-section { width: 50%; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; }
+        .otv-action-btn, .otv-select-btn { border: none; border-radius: 12px; font-size: 24px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 rgba(0,0,0,0.1); transition: all 0.1s; }
+        .otv-action-btn:active { transform: translateY(4px); box-shadow: none; }
         
-        .stop-btn { color: #ef4444; }
-        .stop-btn .ometv-icon-circle { background: #ef4444; }
-        .next-btn { color: #3b82f6; }
-        .next-btn .ometv-icon-circle { background: #3b82f6; }
-        
-        .ometv-action-btn:disabled { opacity: 0.2; cursor: not-allowed; transform: none !important; }
-        .ometv-action-btn:hover:not(:disabled) { transform: scale(1.05); }
+        .start-btn { background: linear-gradient(to bottom, #66bb6a, #43a047); color: #fff; }
+        .stop-btn { background: linear-gradient(to bottom, #ef9a9a, #e57373); color: #fff; }
+        .otv-select-btn { background: #fff; color: #555; border: 1px solid #ddd; }
 
-        .ometv-footer-mid { display: flex; gap: 15px; }
-        .ometv-toggle-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #ddd; background: #f5f5f5; color: #333; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-        .ometv-toggle-btn.is-off { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
-        .ometv-toggle-btn:hover { background: #eee; }
+        .otv-chat-section { width: 50%; padding: 0 4px 4px 0; }
+        .otv-chat-box { height: 100%; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
+        
+        .otv-system-box { padding: 15px; border-bottom: 1px solid #eee; }
+        .otv-sys-header { display: flex; gap: 12px; align-items: flex-start; }
+        .otv-sys-icon { background: #ff5722; padding: 2px 5px; border-radius: 4px; color: #fff; font-size: 10px; font-weight: 900; }
+        .otv-sys-header p { font-size: 13px; color: #444; line-height: 1.4; }
+        .otv-sys-safety { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: #f97316; font-size: 12px; font-weight: 600; }
+
+        .otv-messages-scroll { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .otv-msg { font-size: 13px; }
+        .otv-msg-sender { font-weight: 800; margin-right: 5px; }
+        .is-me .otv-msg-sender { color: #3b82f6; }
+        .is-them .otv-msg-sender { color: #d97706; }
+
+        .otv-input-wrapper { height: 50px; border-top: 1px solid #eee; display: flex; align-items: center; padding: 0 15px; }
+        .otv-chat-input { flex: 1; border: none; outline: none; font-size: 14px; color: #333; }
+        .otv-emoji-btn { font-size: 20px; cursor: pointer; color: #aaa; }
+
+        .otv-camera-off { color: #fff; font-size: 14px; }
 
         @media (max-width: 900px) {
-          .ometv-video-grid { flex-direction: column; }
-          .ometv-video-box { width: 100%; height: 50%; }
-          .ometv-footer-bar { padding: 0 15px; height: 80px; }
-          .ometv-action-btn span { display: none; }
-          .ometv-chat-container { width: calc(100% - 40px); bottom: 10px; left: 20px; }
+          .otv-video-grid { flex-direction: column; }
+          .otv-bottom-bar { flex-direction: column; height: auto; }
+          .otv-buttons-section { width: 100%; height: 200px; }
+          .otv-chat-section { width: 100%; height: 300px; }
         }
 
         .vc-controls { flex-shrink: 0; background: rgba(10,10,15,0.95); border-top: 1px solid rgba(138,20,50,0.2); backdrop-filter: blur(20px); padding: 12px 20px; }
