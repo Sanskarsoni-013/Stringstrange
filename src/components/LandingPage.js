@@ -122,64 +122,51 @@ const LandingPage = () => {
         </div>
       </header>
 
-      <main className="lp-main">
-        <h1 className="lp-title">
-          INSTANT <br />
-          <span>CONNECTION</span>
-        </h1>
-        <p className="lp-subtitle">
-          Experience the next evolution of human interaction. Crystal clear, secure,
-          and effortlessly weightless.
-        </p>
+      <main className="lp-main-classic">
+        <div className="lp-content-card">
+          <div className="lp-brand-header">
+            <h1>StringStrange</h1>
+            <p>Talk to strangers!</p>
+          </div>
 
-        {!showNicknameStep ? (
-          <button
-            className="lp-start-hero-btn"
-            onClick={() => setShowNicknameStep(true)}
-            data-testid="start-chat-button"
-          >
-            Start Chatting
-          </button>
-        ) : (
-          <div className="lp-input-row">
-            <input
-              className={`lp-input ${isFocused ? 'lp-input-focused' : ''}`}
-              type="text"
-              placeholder="Enter your nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              onKeyDown={handleKey}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              maxLength={20}
-              data-testid="nickname-input"
-            />
-            <button className="lp-start-btn" onClick={handleStart} disabled={!nickname.trim()}>
-              Join Now <ArrowRight size={16} />
-            </button>
+          <div className="lp-intro-box">
+            <p>StringStrange is a great way to meet new friends. When you use StringStrange, we pick someone else at random so you can have a one-on-one chat.</p>
           </div>
-        )}
 
-        <div className="lp-stats">
-          <div className="lp-stat-card">
-            <div className="lp-stat-label"><Globe size={13} /> Live Status</div>
-            <div className="lp-stat-value">{onlineCount.toLocaleString()} <span>Online</span></div>
+          <div className="lp-interests-section">
+            <p>What do you want to talk about?</p>
+            <div className="lp-interests-input-wrapper">
+              <input 
+                type="text" 
+                placeholder="Add your interests (optional)" 
+                className="lp-interests-input"
+              />
+            </div>
           </div>
-          <div className="lp-stat-card">
-            <div className="lp-stat-label"><RefreshCw size={13} /> Performance</div>
-            <div className="lp-stat-value">12ms <span>Latency</span></div>
+
+          <div className="lp-start-options">
+            <p>Start chatting:</p>
+            <div className="lp-button-group">
+              <button className="lp-chat-type-btn text-btn" onClick={() => navigate('/chat')}>
+                Text
+              </button>
+              <div className="lp-btn-separator">or</div>
+              <button className="lp-chat-type-btn video-btn" onClick={() => navigate('/chat')}>
+                Video
+              </button>
+            </div>
           </div>
-          <div className="lp-stat-card">
-            <div className="lp-stat-label"><ShieldAlert size={13} /> Security</div>
-            <div className="lp-stat-value">P2P <span>AES-256</span></div>
+
+          <div className="lp-stats-row">
+            <div className="lp-online-stat">
+              <span className="lp-pulse-dot" />
+              <strong>{onlineCount.toLocaleString()}</strong> online now
+            </div>
           </div>
         </div>
 
-        <div className="lp-dock">
-          <button className="lp-dock-btn"><MicOff size={14} /> Mute</button>
-          <button className="lp-dock-btn"><RefreshCw size={14} /> Flip</button>
-          <button className="lp-dock-btn lp-dock-main"><Play size={15} /> Start</button>
-          <button className="lp-dock-btn"><ShieldAlert size={14} /> Report</button>
+        <div className="lp-footer-classic">
+          <p>© 2026 StringStrange. All rights reserved.</p>
         </div>
       </main>
 
@@ -408,149 +395,37 @@ const LandingPage = () => {
         @keyframes pulse-d { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(197,48,74,0.4);} 50%{opacity:0.7;box-shadow:0 0 0 5px rgba(197,48,74,0);} }
 
         /* ─── MAIN ─── */
-        .lp-main {
-          flex: 1; display: flex; flex-direction: column; align-items: center;
-          justify-content: center; padding: 24px 20px;
-          position: relative; z-index: 10; gap: 24px;
-          perspective: 1200px;
-          transform-style: preserve-3d;
-        }
-        .lp-title {
-          font-size: clamp(36px, 5.5vw, 64px);
-          font-weight: 900; line-height: 0.98;
-          letter-spacing: -0.02em; color: #f0f0f5;
-          text-align: center;
-          text-shadow: 0 4px 30px rgba(138, 20, 50, 0.3);
-          transform: translateZ(40px);
-          animation: title-float 6s ease-in-out infinite;
-        }
-        @keyframes title-float {
-          0%, 100% { transform: translateZ(40px) translateY(0); }
-          50% { transform: translateZ(60px) translateY(-6px); }
-        }
-        .lp-title span {
-          background: linear-gradient(180deg, #c5304a 0%, #7c1a3a 60%, #2a0a3a 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .lp-subtitle {
-          font-size: 16px; color: #9a9aaa; line-height: 1.6; max-width: 600px; text-align: center;
-          transform: translateZ(20px);
-        }
-        .lp-input-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
-        .lp-input {
-          width: 280px; padding: 12px 14px;
-          background: rgba(15, 10, 18, 0.6); border: 1px solid rgba(138, 20, 50, 0.3);
-          border-radius: 12px; color: #e8e8ee; font-size: 14px;
-          font-family: 'Inter', sans-serif;
-          outline: none; transition: all 0.25s;
-          backdrop-filter: blur(8px);
-        }
-        .lp-input::placeholder { color: #5a5a66; }
-        .lp-input-focused {
-          border-color: rgba(138, 20, 50, 0.7);
-          box-shadow: 0 0 0 3px rgba(138, 20, 50, 0.12);
-        }
-        .lp-start-btn {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 12px 28px;
-          background: linear-gradient(135deg, #991b3a, #4a0a1a);
-          border: none; border-radius: 999px; color: white;
-          font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif;
-          cursor: pointer; letter-spacing: 0.01em;
-          box-shadow: 0 6px 24px rgba(138, 20, 50, 0.4);
-          transition: all 0.2s;
-        }
-        .lp-start-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(138, 20, 50, 0.55); }
-        .lp-start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .lp-start-hero-btn {
-          border: none;
-          border-radius: 999px;
-          background: linear-gradient(180deg, #991b3a 0%, #4a0a1a 100%);
-          color: #fff;
-          font-size: 18px;
-          font-weight: 700;
-          padding: 14px 36px;
-          box-shadow: 0 8px 32px rgba(138, 20, 50, 0.45), 0 0 60px rgba(138, 20, 50, 0.15);
-          cursor: pointer;
-          transition: all 0.3s ease;
-          letter-spacing: 0.01em;
-          transform: translateZ(30px);
-          position: relative;
-          overflow: hidden;
-        }
-        .lp-start-hero-btn::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-          transform: translateX(-100%);
-          transition: transform 0.5s ease;
-        }
-        .lp-start-hero-btn:hover {
-          transform: translateY(-2px) translateZ(40px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(138, 20, 50, 0.55), 0 0 80px rgba(138, 20, 50, 0.2);
-        }
-        .lp-start-hero-btn:hover::before {
-          transform: translateX(100%);
-        }
-        .lp-stats { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-        .lp-stat-card {
-          width: 180px;
-          border-radius: 16px;
-          background: rgba(15, 10, 18, 0.7);
-          border: 1px solid rgba(138, 20, 50, 0.25);
-          padding: 14px 16px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
-          transform: translateZ(25px);
-          transition: all 0.3s ease;
-          backdrop-filter: blur(10px);
-        }
-        .lp-stat-card:hover {
-          transform: translateZ(45px) translateY(-4px);
-          border-color: rgba(138, 20, 50, 0.5);
-          box-shadow: 0 12px 40px rgba(138, 20, 50, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-        .lp-stat-label { display: flex; align-items: center; gap: 7px; color: #8a8a96; font-size: 14px; margin-bottom: 9px; }
-        .lp-stat-value { font-size: 28px; font-weight: 800; color: #e8e8ee; line-height: 1; }
-        .lp-stat-value span { font-size: 18px; color: #991b3a; }
-
-        .lp-dock {
-          display: flex;
-          gap: 8px;
-          background: rgba(15, 10, 18, 0.7);
-          border: 1px solid rgba(138, 20, 50, 0.25);
-          border-radius: 999px;
-          padding: 6px;
-          transform: translateZ(30px);
-          backdrop-filter: blur(10px);
-        }
-        .lp-dock-btn {
-          border: none;
-          border-radius: 999px;
-          background: transparent;
-          color: #a0a0aa;
-          padding: 8px 12px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          transition: all 0.2s;
-        }
-        .lp-dock-btn:hover {
-          background: rgba(138, 20, 50, 0.15);
-          color: #ddd;
-        }
-        .lp-dock-main {
-          background: radial-gradient(circle at center, rgba(138, 20, 50, 0.5), rgba(74, 10, 26, 0.3));
-          color: #c5304a;
-          font-weight: 700;
-        }
-        .lp-dock-main:hover {
-          background: radial-gradient(circle at center, rgba(138, 20, 50, 0.6), rgba(74, 10, 26, 0.4));
-        }
+        .lp-main-classic { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; z-index: 10; position: relative; }
+        .lp-content-card { background: rgba(15, 10, 18, 0.85); border: 1px solid rgba(138, 20, 50, 0.3); border-radius: 24px; padding: 40px; width: 100%; max-width: 650px; backdrop-filter: blur(20px); box-shadow: 0 20px 80px rgba(0,0,0,0.6); }
+        
+        .lp-brand-header { text-align: center; margin-bottom: 30px; }
+        .lp-brand-header h1 { font-size: 48px; font-weight: 900; background: linear-gradient(135deg, #f0f0f5, #c5304a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .lp-brand-header p { color: #c5304a; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 14px; }
+        
+        .lp-intro-box { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #c5304a; }
+        .lp-intro-box p { color: #9a9aaa; font-size: 15px; line-height: 1.6; }
+        
+        .lp-interests-section { margin-bottom: 30px; }
+        .lp-interests-section p { color: #fff; font-weight: 600; margin-bottom: 12px; }
+        .lp-interests-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(138,20,50,0.2); border-radius: 10px; padding: 14px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .lp-interests-input:focus { border-color: rgba(138,20,50,0.6); }
+        
+        .lp-start-options { text-align: center; margin-bottom: 30px; }
+        .lp-start-options p { color: #8a8a96; font-size: 13px; margin-bottom: 15px; font-weight: 600; text-transform: uppercase; }
+        
+        .lp-button-group { display: flex; align-items: center; justify-content: center; gap: 20px; }
+        .lp-chat-type-btn { flex: 1; border: none; border-radius: 14px; padding: 18px; font-size: 20px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
+        .text-btn { background: #3b82f6; color: #fff; box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+        .video-btn { background: #c5304a; color: #fff; box-shadow: 0 8px 24px rgba(197,48,74,0.3); }
+        .lp-chat-type-btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .lp-btn-separator { color: #4a4a5a; font-weight: 700; }
+        
+        .lp-stats-row { display: flex; justify-content: center; margin-top: 20px; }
+        .lp-online-stat { display: flex; align-items: center; gap: 10px; color: #9a9aaa; font-size: 14px; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 999px; }
+        .lp-pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: lp-pulse 2s infinite; }
+        @keyframes lp-pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 100% { box-shadow: 0 0 0 10px rgba(34,197,94,0); } }
+        
+        .lp-footer-classic { margin-top: 40px; color: #4a4a5a; font-size: 12px; }
 
         /* Venom tendril animations */
         .venom-tendrils {

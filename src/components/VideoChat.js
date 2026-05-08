@@ -598,96 +598,84 @@ const VideoChat = () => {
         </div>
       </header>
 
-      {/* MAIN VIDEO */}
-      <main className="vc-main">
-        <div className="vc-video-primary">
-          <video ref={remoteVideoRef} autoPlay playsInline className="vc-video" data-testid="remote-video" />
-
-          {!isConnected && (
-            <div className="vc-overlay">
-              {isSearching ? (
-                <div className="vc-searching">
-                  <div className="vc-pulse-ring" />
-                  <div className="vc-pulse-ring vc-pulse-ring-2" />
-                  <div className="vc-pulse-ring vc-pulse-ring-3" />
-                  <div className="vc-search-icon"><Loader2 size={32} className="vc-spin" /></div>
-                  <p className="vc-search-text">Looking for someone{searchDots}</p>
-                  <p className="vc-search-sub">Connecting you to a stranger worldwide</p>
-                  {genderPref !== "any" && <p className="vc-search-pref">Preference: {genderPref === "male" ? "Male" : "Female"}</p>}
-                </div>
-              ) : connectionStatus === "media_error" ? (
-                <div className="vc-idle-state">
-                  <div className="vc-idle-icon"><VideoOff size={44} /></div>
-                  <p className="vc-idle-text">Camera / Mic required</p>
-                  <p className="vc-idle-sub">{mediaError || "Enable camera and microphone."}</p>
-                  <button className="vc-enable-media-btn" onClick={initializeMedia}>Enable Camera & Mic</button>
-                </div>
-              ) : (
-                <div className="vc-idle-state">
-                  <div className="vc-idle-icon"><Video size={48} /></div>
-                  <p className="vc-idle-text">Stranger's video</p>
-                  <p className="vc-idle-sub">Press <strong>Start</strong> to meet someone new</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isConnected && partnerNickname && (
-            <div className="vc-partner-label">
-              <span className="vc-live-dot" />
-              {partnerNickname} {partnerGender && <span className="vc-partner-gender">({partnerGender})</span>}
-            </div>
-          )}
-
-          {isConnected && (
-            <button className="vc-next-overlay-btn" onClick={nextPartner}><SkipForward size={16} /> Next</button>
-          )}
-
-          {isConnected && (
-            <button className="vc-chat-toggle" onClick={() => setShowChat(s => !s)}>
-              <MessageSquare size={18} />
-              {messages.filter(m => m.from === "partner").length > 0 && <span className="vc-chat-badge">{messages.filter(m => m.from === "partner").length}</span>}
-            </button>
-          )}
-
-          {showChat && isConnected && (
-            <div className="vc-chat-panel">
-              <div className="vc-chat-head">
-                <div className="vc-chat-head-info">
-                  <span className="vc-chat-status-dot" />
-                  <span>Chatting with {partnerNickname || "Stranger"}</span>
-                </div>
-                <button onClick={() => setShowChat(false)} className="vc-chat-close"><X size={14}/></button>
-              </div>
-              <div className="vc-chat-messages" id="chat-messages-container">
-                {messages.length === 0 && <p className="vc-chat-empty">Connecting to chat...</p>}
-                {messages.map((m, i) => (
-                  <div key={i} className={"vc-chat-msg " + (m.from === "me" ? "vc-chat-me" : m.from === "system" ? "vc-chat-sys" : "vc-chat-them")}>
-                    {m.from !== 'system' && <span className="vc-chat-text">{m.text}</span>}
-                    {m.from === 'system' && <span className="vc-chat-sys-text">{m.text}</span>}
-                    <small>{m.time}</small>
+      {/* MAIN LAYOUT */}
+      <main className="vc-main-layout">
+        {/* LEFT: VIDEOS */}
+        <div className="vc-video-column">
+          <div className="vc-video-container remote-container">
+            <video ref={remoteVideoRef} autoPlay playsInline className="vc-video" />
+            {!isConnected && (
+              <div className="vc-video-overlay">
+                {isSearching ? (
+                  <div className="vc-searching-classic">
+                    <div className="vc-spinner-classic" />
+                    <p>Looking for someone...</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="vc-idle-classic">
+                    <Video size={48} />
+                    <p>Stranger</p>
+                  </div>
+                )}
               </div>
-              <div className="vc-chat-input-row">
-                <input 
-                  value={chatInput} 
-                  onChange={e => setChatInput(e.target.value)} 
-                  onKeyDown={e => e.key === "Enter" && sendMessage()} 
-                  placeholder="Type a message..." 
-                  className="vc-chat-input" 
-                  autoFocus
-                />
-                <button className="vc-chat-send" onClick={sendMessage}>Send</button>
-              </div>
-            </div>
-          )}
+            )}
+            {isConnected && (
+              <div className="vc-video-label">Stranger</div>
+            )}
+          </div>
+
+          <div className="vc-video-container local-container">
+            <video ref={localVideoRef} autoPlay muted playsInline className="vc-video" />
+            {!isVideoEnabled && <div className="vc-video-off"><VideoOff size={32} /></div>}
+            <div className="vc-video-label">You</div>
+          </div>
         </div>
 
-        <div className="vc-video-pip">
-          <video ref={localVideoRef} autoPlay muted playsInline className="vc-video" data-testid="local-video" />
-          {!isVideoEnabled && <div className="vc-pip-off"><VideoOff size={28} /></div>}
-          <div className="vc-pip-label">You{gender ? " (" + gender + ")" : ""}</div>
+        {/* RIGHT: CHAT */}
+        <div className="vc-chat-column">
+          <div className="vc-chat-messages-classic" id="chat-messages-container">
+            {messages.length === 0 && (
+              <div className="vc-chat-intro">
+                <p className="vc-intro-main">StringStrange: Talk to strangers!</p>
+                <p className="vc-intro-sub">You're now chatting with a random stranger. Say hi!</p>
+                {gender && <p className="vc-intro-pref">You are: {gender}</p>}
+                {genderPref !== 'any' && <p className="vc-intro-pref">Looking for: {genderPref}</p>}
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} className={"vc-msg-row " + (m.from === "me" ? "msg-me" : m.from === "system" ? "msg-sys" : "msg-them")}>
+                <span className="msg-label">{m.from === 'me' ? 'You:' : m.from === 'partner' ? 'Stranger:' : ''} </span>
+                <span className="msg-text">{m.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="vc-chat-controls-classic">
+            <button 
+              className={"vc-stop-next-btn " + (isConnected ? "btn-active" : "btn-searching")} 
+              onClick={isConnected ? nextPartner : endChat}
+            >
+              {isConnected ? "Next" : "Stop"}
+            </button>
+            <div className="vc-input-wrapper">
+              <textarea 
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Type your message here..."
+                className="vc-chat-textarea"
+                disabled={!isConnected && !isSearching}
+              />
+              <button className="vc-send-btn-classic" onClick={sendMessage} disabled={!chatInput.trim()}>
+                Send
+              </button>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -867,70 +855,51 @@ const VideoChat = () => {
         .vc-status-ready { background: rgba(30,80,150,0.12); border-color: rgba(50,100,180,0.25); color: #6b8fc7; }
         .vc-status-connecting { background: rgba(80,180,200,0.12); border-color: rgba(100,200,220,0.25); color: #4db8d9; }
 
-        .vc-main { flex: 1; position: relative; overflow: hidden; background: #05050a; }
-        .vc-video-primary { width: 100%; height: 100%; position: relative; }
-        .vc-video { width: 100%; height: 100%; object-fit: cover; display: block; background: #05050a; }
+        .vc-main-layout { flex: 1; display: flex; overflow: hidden; background: #05050a; }
+        
+        .vc-video-column { width: 40%; display: flex; flex-direction: column; gap: 2px; background: #000; border-right: 1px solid rgba(138,20,50,0.3); }
+        .vc-video-container { flex: 1; position: relative; background: #0a0a0f; overflow: hidden; }
+        .vc-video-label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .vc-video-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #05050a; color: #4a4a5a; }
+        .vc-video-off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0a0a0f; color: #333; }
+        
+        .vc-chat-column { width: 60%; display: flex; flex-direction: column; background: #0a0a0f; }
+        .vc-chat-messages-classic { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; font-family: 'Inter', sans-serif; }
+        .vc-chat-intro { padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .vc-intro-main { color: #c5304a; font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+        .vc-intro-sub { color: #9a9aaa; font-size: 13px; margin-bottom: 8px; }
+        .vc-intro-pref { color: #4a4a5a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .vc-msg-row { line-height: 1.5; font-size: 14px; word-break: break-word; }
+        .msg-label { font-weight: 800; margin-right: 6px; }
+        .msg-me .msg-label { color: #3b82f6; }
+        .msg-them .msg-label { color: #ef4444; }
+        .msg-sys { color: #c5304a; font-style: italic; font-size: 13px; padding: 4px 0; }
+        .msg-me .msg-text { color: #e8e8ee; }
+        .msg-them .msg-text { color: #e8e8ee; }
 
-        .vc-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #0d0a10 0%, #05050a 100%); }
+        .vc-chat-controls-classic { height: 120px; display: flex; background: #111; border-top: 1px solid rgba(138,20,50,0.3); }
+        .vc-stop-next-btn { width: 100px; height: 100%; border: none; font-size: 18px; font-weight: 800; color: #fff; cursor: pointer; transition: all 0.2s; }
+        .btn-searching { background: #333; }
+        .btn-active { background: linear-gradient(180deg, #991b3a, #4a0a1a); }
+        .vc-stop-next-btn:hover { filter: brightness(1.1); }
+        
+        .vc-input-wrapper { flex: 1; display: flex; position: relative; }
+        .vc-chat-textarea { flex: 1; background: transparent; border: none; color: #fff; padding: 15px; font-size: 14px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
+        .vc-send-btn-classic { width: 80px; height: 100%; background: transparent; border: none; color: #c5304a; font-weight: 800; cursor: pointer; transition: all 0.2s; }
+        .vc-send-btn-classic:hover:not(:disabled) { background: rgba(138,20,50,0.1); }
+        .vc-send-btn-classic:disabled { color: #333; }
 
-        .vc-searching { display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; }
-        .vc-pulse-ring { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(138,20,50,0.4); animation: expand-ring 2s ease-out infinite; }
-        .vc-pulse-ring-2 { animation-delay: 0.6s; }
-        .vc-pulse-ring-3 { animation-delay: 1.2s; }
-        @keyframes expand-ring { 0%{transform:scale(0.5);opacity:1;} 100%{transform:scale(2.5);opacity:0;} }
-        .vc-search-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(138,20,50,0.1); border: 1px solid rgba(138,20,50,0.3); display: flex; align-items: center; justify-content: center; color: #c5304a; position: relative; z-index: 2; }
-        .vc-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .vc-search-text { color: #f0f0f5; font-size: 18px; font-weight: 600; z-index: 2; }
-        .vc-search-sub { color: #6a6a7a; font-size: 13px; z-index: 2; }
-        .vc-search-pref { color: #c5304a; font-size: 12px; z-index: 2; font-weight: 600; }
+        .vc-searching-classic { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .vc-spinner-classic { width: 30px; height: 30px; border: 3px solid rgba(138,20,50,0.1); border-top-color: #c5304a; border-radius: 50%; animation: spin 0.8s linear infinite; }
 
-        .vc-idle-state { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .vc-idle-icon { width: 80px; height: 80px; border-radius: 50%; background: rgba(15,10,18,0.8); border: 1px solid rgba(138,20,50,0.15); display: flex; align-items: center; justify-content: center; color: #4a4a5a; }
-        .vc-idle-text { color: #5a5a6a; font-size: 16px; font-weight: 500; }
-        .vc-idle-sub { color: #4a4a5a; font-size: 13px; }
-        .vc-enable-media-btn { margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #991b3a, #4a0a1a); border: none; color: white; font-size: 14px; font-weight: 700; padding: 11px 20px; border-radius: 999px; cursor: pointer; box-shadow: 0 0 20px rgba(138,20,50,0.25); transition: all 0.2s; }
-        .vc-enable-media-btn:hover { filter: brightness(1.1); }
-
-        .vc-partner-label { position: absolute; bottom: 16px; left: 16px; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border: 1px solid rgba(138,20,50,0.25); padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #e8e8ee; }
-        .vc-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #c5304a; animation: pulse-dot 1.5s infinite; }
-        .vc-partner-gender { color: #9a9aaa; font-size: 11px; }
-
-        .vc-next-overlay-btn { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 6px; background: rgba(15,10,18,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(138,20,50,0.3); color: #e8e8ee; border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .vc-next-overlay-btn:hover { background: rgba(138,20,50,0.25); border-color: rgba(138,20,50,0.5); }
-
-        .vc-chat-toggle { position: absolute; top: 16px; left: 16px; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(15,10,18,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(138,20,50,0.3); color: #b0b0bb; cursor: pointer; z-index: 5; transition: all 0.2s; }
-        .vc-chat-toggle:hover { background: rgba(138,20,50,0.2); border-color: rgba(138,20,50,0.5); }
-        .vc-chat-badge { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; border-radius: 50%; background: #c5304a; color: white; font-size: 10px; display: flex; align-items: center; justify-content: center; }
-
-        .vc-chat-panel { position: absolute; top: 16px; left: 16px; bottom: 80px; width: 320px; background: rgba(10,5,12,0.75); backdrop-filter: blur(20px); border: 1px solid rgba(138,20,50,0.3); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; z-index: 20; box-shadow: 0 12px 48px rgba(0,0,0,0.5); animation: chat-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes chat-slide-in { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        .vc-chat-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(138,20,50,0.15); border-bottom: 1px solid rgba(138,20,50,0.2); }
-        .vc-chat-head-info { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #fff; }
-        .vc-chat-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-        .vc-chat-close { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #9a9aaa; cursor: pointer; transition: all 0.2s; }
-        .vc-chat-close:hover { background: rgba(239,68,68,0.2); color: #fff; }
-        .vc-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
-        .vc-chat-messages::-webkit-scrollbar { width: 4px; }
-        .vc-chat-messages::-webkit-scrollbar-thumb { background: rgba(138,20,50,0.3); border-radius: 2px; }
-        .vc-chat-empty { color: #6a6a7a; font-size: 12px; text-align: center; margin-top: auto; margin-bottom: auto; }
-        .vc-chat-msg { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 14px; max-width: 85%; position: relative; }
-        .vc-chat-text { font-size: 14px; line-height: 1.4; }
-        .vc-chat-msg small { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; align-self: flex-end; }
-        .vc-chat-me { align-self: flex-end; background: linear-gradient(135deg, #991b3a, #7c1a3a); color: white; border-bottom-right-radius: 2px; box-shadow: 0 4px 12px rgba(153,27,58,0.2); }
-        .vc-chat-them { align-self: flex-start; background: rgba(255,255,255,0.08); color: #e8e8ee; border-bottom-left-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
-        .vc-chat-sys { align-self: center; background: rgba(138,20,50,0.1); border: 1px solid rgba(138,20,50,0.2); border-radius: 8px; width: 100%; max-width: 100%; text-align: center; padding: 6px; }
-        .vc-chat-sys-text { font-size: 11px; color: #c5304a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .vc-chat-input-row { display: flex; gap: 10px; padding: 12px 16px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(138,20,50,0.2); }
-        .vc-chat-input { flex: 1; border: 1px solid rgba(138,20,50,0.3); background: rgba(15,10,18,0.6); border-radius: 12px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; transition: all 0.2s; }
-        .vc-chat-input:focus { border-color: rgba(138,20,50,0.6); background: rgba(15,10,18,0.8); }
-        .vc-chat-send { border: none; border-radius: 10px; background: linear-gradient(135deg, #c5304a, #991b3a); color: white; font-size: 13px; font-weight: 700; padding: 0 16px; cursor: pointer; transition: all 0.2s; }
-        .vc-chat-send:hover { transform: scale(1.05); filter: brightness(1.1); }
-
-        .vc-video-pip { position: absolute; bottom: 80px; right: 16px; width: 180px; height: 120px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(138,20,50,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 5; background: #111; transition: transform 0.2s; }
-        .vc-video-pip:hover { transform: scale(1.03); }
-        .vc-pip-off { position: absolute; inset: 0; background: rgba(10,10,15,0.9); display: flex; align-items: center; justify-content: center; color: #475569; }
-        .vc-pip-label { position: absolute; bottom: 6px; left: 8px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        @media (max-width: 768px) {
+          .vc-main-layout { flex-direction: column; }
+          .vc-video-column { width: 100%; height: 35%; flex-direction: row; }
+          .vc-chat-column { width: 100%; height: 65%; }
+          .vc-chat-controls-classic { height: 80px; }
+          .vc-stop-next-btn { width: 80px; font-size: 14px; }
+        }
 
         .vc-controls { flex-shrink: 0; background: rgba(10,10,15,0.95); border-top: 1px solid rgba(138,20,50,0.2); backdrop-filter: blur(20px); padding: 12px 20px; }
         .vc-controls-prompt { display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 520px; margin: 0 auto; }
