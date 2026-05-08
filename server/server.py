@@ -26,14 +26,17 @@ class ConnectionManager:
         self.user_queue: List[str] = []
         self.active_rooms: Dict[str, List[str]] = {}
         self.user_to_room: Dict[str, str] = {}
+        self.user_metadata: Dict[str, dict] = {} # user_id -> {gender, genderPref, nickname}
 
     async def connect(self, websocket: WebSocket, user_id: str):
         await websocket.accept()
         self.active_connections[user_id] = websocket
+        self.user_metadata[user_id] = {"gender": "any", "genderPref": "any"}
         logger.info(f"User {user_id} connected. Total: {len(self.active_connections)}")
 
     def disconnect(self, user_id: str):
         self.active_connections.pop(user_id, None)
+        self.user_metadata.pop(user_id, None)
         if user_id in self.user_queue:
             self.user_queue.remove(user_id)
         if user_id in self.user_to_room:
@@ -57,17 +60,36 @@ class ConnectionManager:
         if user_id in self.user_to_room:
             self.close_room_for_user(user_id)
 
+        user_meta = self.user_metadata.get(user_id, {"gender": "any", "genderPref": "any"})
+        u_gender = user_meta.get("gender", "any")
+        u_pref = user_meta.get("genderPref", "any")
+
         # Try to match with someone already in queue
         for queued_id in list(self.user_queue):
             if queued_id != user_id and queued_id in self.active_connections:
-                self.user_queue.remove(queued_id)
-                if queued_id in self.user_to_room:
-                    self.close_room_for_user(queued_id)
-                room_id = str(uuid.uuid4())
-                self.active_rooms[room_id] = [user_id, queued_id]
-                self.user_to_room[user_id] = room_id
-                self.user_to_room[queued_id] = room_id
-                return queued_id
+                q_meta = self.user_metadata.get(queued_id, {"gender": "any", "genderPref": "any"})
+                q_gender = q_meta.get("gender", "any")
+                q_pref = q_meta.get("genderPref", "any")
+
+                # Matching logic: 
+                # 1. User's preference must match Queued's gender (or user prefers 'any')
+                # 2. Queued's preference must match User's gender (or queued prefers 'any')
+                match_ok = True
+                if u_pref != "any" and u_pref != q_gender:
+                    match_ok = False
+                if q_pref != "any" and q_pref != u_gender:
+                    match_ok = False
+
+                if match_ok:
+                    self.user_queue.remove(queued_id)
+                    if queued_id in self.user_to_room:
+                        self.close_room_for_user(queued_id)
+                    room_id = str(uuid.uuid4())
+                    self.active_rooms[room_id] = [user_id, queued_id]
+                    self.user_to_room[user_id] = room_id
+                    self.user_to_room[queued_id] = room_id
+                    return queued_id
+
         # No match found — add self to queue
         if user_id not in self.user_queue:
             self.user_queue.append(user_id)
@@ -90,10 +112,6 @@ class ConnectionManager:
                     del self.active_rooms[room_id]
 
     def close_room_for_user(self, user_id: str) -> List[str]:
-        """
-        Remove the full room and clear room mapping for all members.
-        Returns the other users that were in that room.
-        """
         room_id = self.user_to_room.get(user_id)
         if not room_id:
             return []
@@ -118,12 +136,32 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             message = json.loads(data)
             msg_type = message.get("type")
 
-            if msg_type == "find_match":
+            if msg_type == "set_gender":
+                manager.user_metadata[user_id] = {
+                    "gender": message.get("gender", "any"),
+                    "genderPref": message.get("genderPref", "any")
+                }
+                logger.info(f"Updated metadata for {user_id}: {manager.user_metadata[user_id]}")
+
+            elif msg_type == "find_match":
                 partner_id = manager.find_match(user_id)
                 if partner_id:
-                    # Deterministic initiator prevents double-offer glare in WebRTC.
-                    await manager.send_to({"type": "match_found", "partner_id": partner_id, "initiator": True}, user_id)
-                    await manager.send_to({"type": "match_found", "partner_id": user_id, "initiator": False}, partner_id)
+                    p_meta = manager.user_metadata.get(partner_id, {})
+                    u_meta = manager.user_metadata.get(user_id, {})
+                    
+                    await manager.send_to({
+                        "type": "match_found", 
+                        "partner_id": partner_id, 
+                        "partner_gender": p_meta.get("gender"),
+                        "initiator": True
+                    }, user_id)
+                    
+                    await manager.send_to({
+                        "type": "match_found", 
+                        "partner_id": user_id, 
+                        "partner_gender": u_meta.get("gender"),
+                        "initiator": False
+                    }, partner_id)
                 else:
                     await manager.send_to({"type": "waiting_for_match"}, user_id)
 
@@ -134,12 +172,24 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                 # Re-queue
                 new_partner = manager.find_match(user_id)
                 if new_partner:
-                    await manager.send_to({"type": "match_found", "partner_id": new_partner, "initiator": True}, user_id)
-                    await manager.send_to({"type": "match_found", "partner_id": user_id, "initiator": False}, new_partner)
+                    p_meta = manager.user_metadata.get(new_partner, {})
+                    u_meta = manager.user_metadata.get(user_id, {})
+                    await manager.send_to({
+                        "type": "match_found", 
+                        "partner_id": new_partner, 
+                        "partner_gender": p_meta.get("gender"),
+                        "initiator": True
+                    }, user_id)
+                    await manager.send_to({
+                        "type": "match_found", 
+                        "partner_id": user_id, 
+                        "partner_gender": u_meta.get("gender"),
+                        "initiator": False
+                    }, new_partner)
                 else:
                     await manager.send_to({"type": "waiting_for_match"}, user_id)
 
-            elif msg_type in ["offer", "answer", "ice_candidate"]:
+            elif msg_type in ["offer", "answer", "ice_candidate", "chat_message"]:
                 partner_id = manager.get_partner(user_id)
                 if partner_id:
                     message["from"] = user_id
