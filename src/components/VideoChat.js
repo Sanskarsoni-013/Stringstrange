@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, VideoOff, Mic, MicOff, SkipForward, X, Flag, Home, Users, Loader2, Wifi, WifiOff, Settings, Lock, HelpCircle, Mail, User, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, SkipForward, X, Flag, Home, Users, Loader2, Wifi, WifiOff, Settings, Lock, HelpCircle, Mail, User, AlertTriangle, CheckCircle, MessageSquare, Grid, Folder, Play, Send } from 'lucide-react';
 import ConstantinELogo from './ui/Logo';
 
 // Backend URL - check env first, then auto-detect
@@ -1011,38 +1011,6 @@ const VideoChat = () => {
           .otv-chat-section { width: 100%; height: 300px; }
         }
 
-        .vc-controls { flex-shrink: 0; background: rgba(10,10,15,0.95); border-top: 1px solid rgba(138,20,50,0.2); backdrop-filter: blur(20px); padding: 12px 20px; }
-        .vc-controls-prompt { display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 520px; margin: 0 auto; }
-        .vc-mini-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(138,20,50,0.3); background: rgba(15,10,18,0.5); color: #f4f4f5; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; }
-        .vc-mini-btn:hover { transform: translateY(-1px); background: rgba(138,20,50,0.15); }
-        .vc-start-pill-btn { border: none; border-radius: 999px; min-width: 170px; height: 44px; padding: 0 24px; background: linear-gradient(135deg, #991b3a, #4a0a1a); color: #f8fafc; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; box-shadow: 0 10px 28px rgba(138,20,50,0.35); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .vc-start-pill-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(138,20,50,0.48); }
-        .vc-controls-inner { display: flex; align-items: center; justify-content: space-between; max-width: 700px; margin: 0 auto; gap: 12px; }
-        .vc-ctrl-group { display: flex; gap: 10px; align-items: center; }
-        .vc-ctrl-btn { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(15,10,18,0.5); border: 1px solid rgba(138,20,50,0.3); color: white; cursor: pointer; transition: all 0.2s; }
-        .vc-ctrl-btn:hover { background: rgba(138,20,50,0.2); border-color: rgba(138,20,50,0.5); transform: scale(1.08); }
-        .vc-ctrl-danger { background: rgba(120,20,30,0.3); border-color: rgba(180,40,50,0.4); color: #f87171; }
-        .vc-ctrl-danger:hover { background: rgba(180,40,50,0.35); }
-        .vc-ctrl-warn { background: rgba(180,130,30,0.15); border-color: rgba(200,160,50,0.3); color: #fbbf24; }
-        .vc-ctrl-warn:hover { background: rgba(200,160,50,0.25); }
-        .vc-ctrl-chat { background: rgba(50,80,150,0.15); border-color: rgba(80,120,200,0.3); color: #6b8fc7; }
-        .vc-ctrl-chat:hover { background: rgba(80,120,200,0.25); }
-        .vc-ctrl-center { display: flex; gap: 10px; }
-
-        .vc-next-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #991b3a, #4a0a1a); border: none; color: white; font-size: 16px; font-weight: 700; padding: 14px 40px; border-radius: 50px; cursor: pointer; box-shadow: 0 0 20px rgba(138,20,50,0.3); transition: all 0.2s; }
-        .vc-next-btn:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(138,20,50,0.5); }
-
-        .vc-stop-btn { display: flex; align-items: center; gap: 8px; background: rgba(120,20,30,0.3); border: 1px solid rgba(180,40,50,0.4); color: #f87171; font-size: 15px; font-weight: 600; padding: 14px 36px; border-radius: 50px; cursor: pointer; transition: all 0.2s; }
-        .vc-stop-btn:hover { background: rgba(180,40,50,0.35); }
-
-        @media (max-width: 600px) {
-          .vc-video-pip { width: 110px; height: 75px; bottom: 76px; right: 10px; }
-          .vc-logo-text span { display: none; }
-          .vc-nickname-tag { display: none; }
-          .vc-start-pill-btn { min-width: 140px; height: 40px; font-size: 16px; }
-          .vc-chat-panel { width: 220px; top: 56px; left: 8px; bottom: 76px; }
-          .vc-next-btn, .vc-stop-btn { padding: 12px 28px; font-size: 14px; }
-        }
       `}</style>
     </div>
   );
