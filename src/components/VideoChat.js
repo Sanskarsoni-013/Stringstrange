@@ -598,84 +598,84 @@ const VideoChat = () => {
         </div>
       </header>
 
-      {/* MAIN LAYOUT */}
-      <main className="vc-main-layout">
-        {/* LEFT: VIDEOS */}
-        <div className="vc-video-column">
-          <div className="vc-video-container remote-container">
-            <video ref={remoteVideoRef} autoPlay playsInline className="vc-video" />
+      {/* OMETV STYLE LAYOUT */}
+      <main className="ometv-main">
+        <div className="ometv-video-grid">
+          {/* STRANGER VIDEO (LEFT) */}
+          <div className="ometv-video-box stranger-box">
+            <video ref={remoteVideoRef} autoPlay playsInline className="ometv-video" />
             {!isConnected && (
-              <div className="vc-video-overlay">
+              <div className="ometv-placeholder">
                 {isSearching ? (
-                  <div className="vc-searching-classic">
-                    <div className="vc-spinner-classic" />
-                    <p>Looking for someone...</p>
+                  <div className="ometv-searching-ui">
+                    <div className="ometv-spinner" />
+                    <p>Finding a partner...</p>
                   </div>
                 ) : (
-                  <div className="vc-idle-classic">
-                    <Video size={48} />
+                  <div className="ometv-idle-ui">
+                    <Users size={64} strokeWidth={1} />
                     <p>Stranger</p>
                   </div>
                 )}
               </div>
             )}
+            <div className="ometv-tag stranger-tag">Stranger</div>
+            
+            {/* CHAT OVERLAY ON STRANGER VIDEO */}
             {isConnected && (
-              <div className="vc-video-label">Stranger</div>
+              <div className="ometv-chat-overlay">
+                <div className="ometv-chat-history" id="chat-messages-container">
+                  {messages.map((m, i) => (
+                    <div key={i} className={"ometv-msg " + (m.from === "me" ? "ometv-msg-me" : "ometv-msg-them")}>
+                      <span className="ometv-msg-text">{m.text}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="ometv-chat-input-box">
+                  <input 
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && sendMessage()}
+                    placeholder="Type a message..."
+                    className="ometv-input"
+                  />
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="vc-video-container local-container">
-            <video ref={localVideoRef} autoPlay muted playsInline className="vc-video" />
-            {!isVideoEnabled && <div className="vc-video-off"><VideoOff size={32} /></div>}
-            <div className="vc-video-label">You</div>
+          {/* YOUR VIDEO (RIGHT) */}
+          <div className="ometv-video-box local-box">
+            <video ref={localVideoRef} autoPlay muted playsInline className="ometv-video" />
+            {!isVideoEnabled && (
+              <div className="ometv-video-off-ui">
+                <VideoOff size={64} strokeWidth={1} />
+              </div>
+            )}
+            <div className="ometv-tag local-tag">You</div>
           </div>
         </div>
 
-        {/* RIGHT: CHAT */}
-        <div className="vc-chat-column">
-          <div className="vc-chat-messages-classic" id="chat-messages-container">
-            {messages.length === 0 && (
-              <div className="vc-chat-intro">
-                <p className="vc-intro-main">StringStrange: Talk to strangers!</p>
-                <p className="vc-intro-sub">You're now chatting with a random stranger. Say hi!</p>
-                {gender && <p className="vc-intro-pref">You are: {gender}</p>}
-                {genderPref !== 'any' && <p className="vc-intro-pref">Looking for: {genderPref}</p>}
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} className={"vc-msg-row " + (m.from === "me" ? "msg-me" : m.from === "system" ? "msg-sys" : "msg-them")}>
-                <span className="msg-label">{m.from === 'me' ? 'You:' : m.from === 'partner' ? 'Stranger:' : ''} </span>
-                <span className="msg-text">{m.text}</span>
-              </div>
-            ))}
+        {/* OMETV CONTROLS */}
+        <div className="ometv-controls-bar">
+          <button className="ometv-btn ometv-btn-stop" onClick={endChat}>
+            <X size={24} />
+            <span>Stop</span>
+          </button>
+          
+          <div className="ometv-mid-controls">
+            <button className={"ometv-btn-round " + (!isVideoEnabled ? "off" : "")} onClick={toggleVideo}>
+              {isVideoEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+            </button>
+            <button className={"ometv-btn-round " + (!isAudioEnabled ? "off" : "")} onClick={toggleAudio}>
+              {isAudioEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+            </button>
           </div>
 
-          <div className="vc-chat-controls-classic">
-            <button 
-              className={"vc-stop-next-btn " + (isConnected ? "btn-active" : "btn-searching")} 
-              onClick={isConnected ? nextPartner : endChat}
-            >
-              {isConnected ? "Next" : "Stop"}
-            </button>
-            <div className="vc-input-wrapper">
-              <textarea 
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Type your message here..."
-                className="vc-chat-textarea"
-                disabled={!isConnected && !isSearching}
-              />
-              <button className="vc-send-btn-classic" onClick={sendMessage} disabled={!chatInput.trim()}>
-                Send
-              </button>
-            </div>
-          </div>
+          <button className="ometv-btn ometv-btn-next" onClick={nextPartner} disabled={!isConnected && !isSearching}>
+            <SkipForward size={24} />
+            <span>Next</span>
+          </button>
         </div>
       </main>
 
@@ -855,50 +855,44 @@ const VideoChat = () => {
         .vc-status-ready { background: rgba(30,80,150,0.12); border-color: rgba(50,100,180,0.25); color: #6b8fc7; }
         .vc-status-connecting { background: rgba(80,180,200,0.12); border-color: rgba(100,200,220,0.25); color: #4db8d9; }
 
-        .vc-main-layout { flex: 1; display: flex; overflow: hidden; background: #05050a; }
+        .ometv-main { flex: 1; display: flex; flex-direction: column; background: #fff; font-family: "Century Schoolbook", serif; }
+        .ometv-video-grid { flex: 1; display: flex; background: #000; overflow: hidden; }
         
-        .vc-video-column { width: 40%; display: flex; flex-direction: column; gap: 2px; background: #000; border-right: 1px solid rgba(138,20,50,0.3); }
-        .vc-video-container { flex: 1; position: relative; background: #0a0a0f; overflow: hidden; }
-        .vc-video-label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        .vc-video-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #05050a; color: #4a4a5a; }
-        .vc-video-off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0a0a0f; color: #333; }
+        .ometv-video-box { position: relative; width: 659.84px; height: 569.6px; background: #0a0a0a; flex: 1; border: 1px solid #111; }
+        .ometv-video { width: 100%; height: 100%; object-fit: cover; }
         
-        .vc-chat-column { width: 60%; display: flex; flex-direction: column; background: #0a0a0f; }
-        .vc-chat-messages-classic { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; font-family: 'Inter', sans-serif; }
-        .vc-chat-intro { padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
-        .vc-intro-main { color: #c5304a; font-weight: 800; font-size: 16px; margin-bottom: 4px; }
-        .vc-intro-sub { color: #9a9aaa; font-size: 13px; margin-bottom: 8px; }
-        .vc-intro-pref { color: #4a4a5a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-        
-        .vc-msg-row { line-height: 1.5; font-size: 14px; word-break: break-word; }
-        .msg-label { font-weight: 800; margin-right: 6px; }
-        .msg-me .msg-label { color: #3b82f6; }
-        .msg-them .msg-label { color: #ef4444; }
-        .msg-sys { color: #c5304a; font-style: italic; font-size: 13px; padding: 4px 0; }
-        .msg-me .msg-text { color: #e8e8ee; }
-        .msg-them .msg-text { color: #e8e8ee; }
+        .ometv-tag { position: absolute; top: 20px; background: rgba(0,0,0,0.5); color: #fff; padding: 5px 15px; border-radius: 4px; font-size: 14px; font-weight: 600; z-index: 10; }
+        .stranger-tag { left: 20px; }
+        .local-tag { right: 20px; }
 
-        .vc-chat-controls-classic { height: 120px; display: flex; background: #111; border-top: 1px solid rgba(138,20,50,0.3); }
-        .vc-stop-next-btn { width: 100px; height: 100%; border: none; font-size: 18px; font-weight: 800; color: #fff; cursor: pointer; transition: all 0.2s; }
-        .btn-searching { background: #333; }
-        .btn-active { background: linear-gradient(180deg, #991b3a, #4a0a1a); }
-        .vc-stop-next-btn:hover { filter: brightness(1.1); }
-        
-        .vc-input-wrapper { flex: 1; display: flex; position: relative; }
-        .vc-chat-textarea { flex: 1; background: transparent; border: none; color: #fff; padding: 15px; font-size: 14px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
-        .vc-send-btn-classic { width: 80px; height: 100%; background: transparent; border: none; color: #c5304a; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-        .vc-send-btn-classic:hover:not(:disabled) { background: rgba(138,20,50,0.1); }
-        .vc-send-btn-classic:disabled { color: #333; }
+        .ometv-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #444; }
+        .ometv-searching-ui { text-align: center; color: #fff; }
+        .ometv-spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
 
-        .vc-searching-classic { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .vc-spinner-classic { width: 30px; height: 30px; border: 3px solid rgba(138,20,50,0.1); border-top-color: #c5304a; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .ometv-chat-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 40%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); display: flex; flex-direction: column; padding: 20px; pointer-events: none; }
+        .ometv-chat-history { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .ometv-msg { max-width: 80%; padding: 4px 12px; border-radius: 15px; font-size: 14px; }
+        .ometv-msg-me { align-self: flex-end; background: rgba(59, 130, 246, 0.4); color: #fff; }
+        .ometv-msg-them { align-self: flex-start; background: rgba(255, 255, 255, 0.2); color: #fff; }
+        .ometv-chat-input-box { pointer-events: auto; }
+        .ometv-input { width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 10px 20px; color: #fff; font-size: 14px; outline: none; }
 
-        @media (max-width: 768px) {
-          .vc-main-layout { flex-direction: column; }
-          .vc-video-column { width: 100%; height: 35%; flex-direction: row; }
-          .vc-chat-column { width: 100%; height: 65%; }
-          .vc-chat-controls-classic { height: 80px; }
-          .vc-stop-next-btn { width: 80px; font-size: 14px; }
+        .ometv-controls-bar { height: 100px; background: #fff; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
+        .ometv-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; color: #333; font-weight: 700; transition: all 0.2s; }
+        .ometv-btn:hover { color: #000; transform: translateY(-2px); }
+        .ometv-btn-stop { color: #ef4444; }
+        .ometv-btn-next { color: #3b82f6; }
+        .ometv-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .ometv-mid-controls { display: flex; gap: 20px; }
+        .ometv-btn-round { width: 45px; height: 45px; border-radius: 50%; border: 1px solid #ddd; background: #f9f9f9; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .ometv-btn-round:hover { background: #eee; }
+        .ometv-btn-round.off { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+
+        @media (max-width: 1000px) {
+          .ometv-video-grid { flex-direction: column; }
+          .ometv-video-box { width: 100%; height: 50%; }
+          .ometv-controls-bar { padding: 0 20px; }
         }
 
         .vc-controls { flex-shrink: 0; background: rgba(10,10,15,0.95); border-top: 1px solid rgba(138,20,50,0.2); backdrop-filter: blur(20px); padding: 12px 20px; }
