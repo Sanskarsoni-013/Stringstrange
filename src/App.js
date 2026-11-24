@@ -1,659 +1,571 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Search,
-  Clock,
-  BarChart2,
-  Sliders,
-  Bell,
-  RotateCcw,
-  Camera,
-  Maximize2,
-  Settings,
-  Share2,
-  Plus,
-  ChevronDown,
-  Grid,
-  Undo2,
-  Redo2,
-  List,
-  Radio,
-  Newspaper,
-  Flame,
-  Calendar,
-  Lightbulb,
-  MessageSquare,
-  X,
-  ArrowUpRight,
-  ArrowDownRight,
-  Check,
-  Activity
-} from 'lucide-react';
 
-// MASTER WATCHLIST DATABASE
-const WATCHLIST = [
-  { symbol: 'BINANCE:BTCUSDT', name: 'BTCUSDT', desc: 'Bitcoin / TetherUS', price: 96840.50, change: +3.42, market: 'crypto', exchange: 'BINANCE', high: 97420, low: 93800, vol: '48.2B', rating: 'Strong Buy' },
-  { symbol: 'BINANCE:ETHUSDT', name: 'ETHUSDT', desc: 'Ethereum / TetherUS', price: 3420.80, change: +5.18, market: 'crypto', exchange: 'BINANCE', high: 3490, low: 3240, vol: '24.1B', rating: 'Strong Buy' },
-  { symbol: 'BINANCE:SOLUSDT', name: 'SOLUSDT', desc: 'Solana / TetherUS', price: 218.45, change: +8.74, market: 'crypto', exchange: 'BINANCE', high: 224, low: 198, vol: '9.4B', rating: 'Strong Buy' },
-  { symbol: 'NASDAQ:NVDA', name: 'NVDA', desc: 'NVIDIA Corporation', price: 142.80, change: +4.12, market: 'stocks', exchange: 'NASDAQ', high: 144.5, low: 139.2, vol: '52.1M', rating: 'Buy' },
-  { symbol: 'NASDAQ:TSLA', name: 'TSLA', desc: 'Tesla, Inc.', price: 348.50, change: +6.85, market: 'stocks', exchange: 'NASDAQ', high: 352, low: 334, vol: '84.6M', rating: 'Strong Buy' },
-  { symbol: 'NASDAQ:AAPL', name: 'AAPL', desc: 'Apple Inc.', price: 238.10, change: +1.24, market: 'stocks', exchange: 'NASDAQ', high: 240, low: 236, vol: '41.2M', rating: 'Neutral' },
-  { symbol: 'AMEX:SPY', name: 'SPY', desc: 'SPDR S&P 500 ETF Trust', price: 598.40, change: +0.82, market: 'indices', exchange: 'AMEX', high: 600, low: 595, vol: '62.4M', rating: 'Buy' },
-  { symbol: 'FX:EURUSD', name: 'EURUSD', desc: 'Euro / US Dollar', price: 1.0482, change: -0.15, market: 'forex', exchange: 'FX', high: 1.052, low: 1.046, vol: '124B', rating: 'Neutral' },
-  { symbol: 'OANDA:XAUUSD', name: 'XAUUSD', desc: 'Gold / US Dollar', price: 2684.50, change: +0.65, market: 'commodities', exchange: 'OANDA', high: 2698, low: 2672, vol: '18.4B', rating: 'Buy' }
-];
+// SOUND SYNTHESIZER USING NATIVE WEB AUDIO API
+class FlappySound {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+  }
 
-// TIMEFRAMES
-const TIMEFRAMES = [
-  { label: '1m', interval: '1' },
-  { label: '5m', interval: '5' },
-  { label: '15m', interval: '15' },
-  { label: '1h', interval: '60' },
-  { label: '4h', interval: '240' },
-  { label: 'D', interval: 'D' },
-  { label: 'W', interval: 'W' },
-  { label: 'M', interval: 'M' }
-];
+  init() {
+    if (!this.ctx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.ctx = new AudioContext();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
 
-// CHART STYLES
-const CHART_STYLES = [
-  { id: '1', label: 'Candles' },
-  { id: '8', label: 'Heikin Ashi' },
-  { id: '2', label: 'Line' },
-  { id: '0', label: 'Bars' }
-];
+  flap() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(780, t + 0.09);
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.09);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    } catch (e) {}
+  }
 
-// INDICATORS
-const POPULAR_INDICATORS = [
-  { name: 'Relative Strength Index (RSI)', desc: 'Momentum oscillator measuring speed and change of price moves.' },
-  { name: 'MACD (Moving Average Convergence Divergence)', desc: 'Trend-following momentum indicator showing moving average relationships.' },
-  { name: 'Bollinger Bands (BB)', desc: 'Volatility bands placed above and below a moving average.' },
-  { name: 'EMA 20 / 50 / 200 (Triple Moving Average)', desc: 'Exponential moving averages for dynamic support & resistance.' },
-  { name: 'Volume Profile Fixed Range (VPVR)', desc: 'Histogram showing trading activity at specific price levels.' },
-  { name: 'SuperTrend', desc: 'Trend-following overlay based on Average True Range (ATR).' },
-  { name: 'Ichimoku Cloud', desc: 'Comprehensive gauge of support, resistance, momentum, and trend direction.' }
-];
+  score() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(659, t);
+      osc.frequency.setValueAtTime(880, t + 0.08);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    } catch (e) {}
+  }
+
+  hit() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.exponentialRampToValueAtTime(45, t + 0.16);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.16);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    } catch (e) {}
+  }
+
+  die() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(390, t);
+      osc.frequency.linearRampToValueAtTime(110, t + 0.32);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.32);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.32);
+    } catch (e) {}
+  }
+}
+
+const sfx = new FlappySound();
+
+// PRECISE SPRITE CO-ORDINATES IN ATLAS
+const ATLAS = {
+  bg: { x: 4, y: 4, w: 1440, h: 2560 },
+  cityline: { x: 2568, y: 4, w: 1440, h: 1100 },
+  ground: { x: 1012, y: 2572, w: 1440, h: 530 },
+  bird0: { x: 3624, y: 1112, w: 220, h: 150 },
+  bird1: { x: 3852, y: 1112, w: 220, h: 150 },
+  bird2: { x: 3865, y: 1310, w: 220, h: 232 },
+  pipe: { x: 1452, y: 1310, w: 206, h: 1024 },
+  tapHint: { x: 3400, y: 1310, w: 457, h: 256 },
+  scoreboard: { x: 1666, y: 1310, w: 1446, h: 738 },
+  gameOver: { x: 2136, y: 2342, w: 1089, h: 199 },
+  medalBronze: { x: 3616, y: 2056, w: 220, h: 220 },
+  medalSilver: { x: 1908, y: 2342, w: 220, h: 220 },
+  medalGold: { x: 1452, y: 2342, w: 220, h: 220 },
+  medalPlatinum: { x: 1680, y: 2342, w: 220, h: 220 },
+  newBadge: { x: 3262, y: 2572, w: 206, h: 92 },
+  buttonGreen: { x: 3120, y: 1856, w: 520, h: 168 },
+  buttonYellow: { x: 3233, y: 2342, w: 520, h: 168 }
+};
 
 export default function App() {
-  const [selectedItem, setSelectedItem] = useState(WATCHLIST[0]);
-  const [interval, setInterval] = useState('60');
-  const [chartStyle, setChartStyle] = useState('1');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeRightTab, setActiveRightTab] = useState('watchlist'); // 'watchlist', 'alerts', 'news', 'data', 'calendar'
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [indicatorModalOpen, setIndicatorModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [marketFilter, setMarketFilter] = useState('all');
-  const [tvReady, setTvReady] = useState(false);
-  const [snapshotToast, setSnapshotToast] = useState(false);
+  const canvasRef = useRef(null);
+  const atlasImgRef = useRef(null);
+  const [atlasLoaded, setAtlasLoaded] = useState(false);
 
-  // Initialize and Update TradingView Real-Time Widget
-  const loadTradingViewWidget = useCallback((symbolStr, intervalStr, styleStr) => {
-    const container = document.getElementById('tradingview_chart');
-    if (!container) return;
-    container.innerHTML = '';
+  // GAME STATE
+  const [highScore, setHighScore] = useState(() => {
+    return parseInt(localStorage.getItem('flappy_best_score') || '0', 10);
+  });
 
-    if (window.TradingView) {
-      new window.TradingView.widget({
-        autosize: true,
-        symbol: symbolStr,
-        interval: intervalStr,
-        timezone: 'Etc/UTC',
-        theme: 'dark',
-        style: styleStr,
-        locale: 'en',
-        toolbar_bg: '#131722',
-        enable_publishing: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: true,
-        save_image: true,
-        container_id: 'tradingview_chart',
-        studies: [
-          'MASimple@tv-basicstudies',
-          'RSI@tv-basicstudies',
-          'MACD@tv-basicstudies'
-        ]
-      });
-      setTvReady(true);
+  // MUTABLE GAME RUNTIME (60 FPS)
+  const g = useRef({
+    state: 'READY', // 'READY' | 'PLAYING' | 'OVER'
+    score: 0,
+    highScore: parseInt(localStorage.getItem('flappy_best_score') || '0', 10),
+    isNewHigh: false,
+    flashOpacity: 0,
+    ticks: 0,
+    bird: {
+      x: 100,
+      y: 290,
+      w: 48,
+      h: 34,
+      radius: 14,
+      vy: 0,
+      gravity: 0.32,
+      jump: -6.4,
+      rotation: 0,
+      frameIdx: 0
+    },
+    pipes: [],
+    groundOffset: 0,
+    cityOffset: 0,
+    pipeGap: 140,
+    pipeWidth: 68,
+    speed: 2.5,
+    groundY: 575,
+    gameW: 400,
+    gameH: 700
+  });
+
+  // Load Atlas Image
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/atlas.webp';
+    img.onload = () => {
+      atlasImgRef.current = img;
+      setAtlasLoaded(true);
+    };
+  }, []);
+
+  // Flap Action Trigger
+  const handleFlap = useCallback(() => {
+    sfx.init();
+    const game = g.current;
+
+    if (game.state === 'READY') {
+      game.state = 'PLAYING';
+      game.bird.vy = game.bird.jump;
+      game.bird.rotation = -0.38;
+      sfx.flap();
+    } else if (game.state === 'PLAYING') {
+      game.bird.vy = game.bird.jump;
+      game.bird.rotation = -0.38;
+      sfx.flap();
+    } else if (game.state === 'OVER') {
+      // If bird has reached ground, allow restart
+      if (game.bird.y >= game.groundY - game.bird.h / 2 - 2) {
+        restartGame();
+      }
     }
   }, []);
 
-  // Poll for window.TradingView script availability
-  useEffect(() => {
-    const checkScript = () => {
-      if (window.TradingView) {
-        loadTradingViewWidget(selectedItem.symbol, interval, chartStyle);
-      } else {
-        setTimeout(checkScript, 200);
-      }
-    };
-    checkScript();
-  }, [selectedItem.symbol, interval, chartStyle, loadTradingViewWidget]);
+  const restartGame = () => {
+    const game = g.current;
+    game.state = 'READY';
+    game.score = 0;
+    game.isNewHigh = false;
+    game.bird.x = 100;
+    game.bird.y = 290;
+    game.bird.vy = 0;
+    game.bird.rotation = 0;
+    game.pipes = [];
+    game.flashOpacity = 0;
+  };
 
-  // Handle Keyboard Shortcuts (Ctrl+K / Cmd+K for Symbol Search)
+  // Keyboard Bindings
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    const onKey = (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
-        setSearchModalOpen(prev => !prev);
-      }
-      if (e.key === 'Escape') {
-        setSearchModalOpen(false);
-        setIndicatorModalOpen(false);
+        handleFlap();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleFlap]);
 
-  // Filtered Search Results
-  const filteredSymbols = WATCHLIST.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMarket = marketFilter === 'all' || item.market === marketFilter;
-    return matchesSearch && matchesMarket;
-  });
+  // Main 60 FPS Canvas Game Loop
+  useEffect(() => {
+    if (!atlasLoaded) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const atlas = atlasImgRef.current;
+    let animId;
 
-  const handleSelectSymbol = (item) => {
-    setSelectedItem(item);
-    setSearchModalOpen(false);
-  };
+    const loop = () => {
+      const game = g.current;
+      game.ticks++;
+      const { gameW, gameH, groundY } = game;
 
-  const handleTakeSnapshot = () => {
-    setSnapshotToast(true);
-    setTimeout(() => setSnapshotToast(false), 2500);
-  };
+      // 1. DRAW BACKGROUND SKY
+      const bg = ATLAS.bg;
+      ctx.drawImage(atlas, bg.x, bg.y, bg.w, bg.h, 0, 0, gameW, groundY);
+
+      // 2. DRAW CITYLINE (Slow Parallax)
+      if (game.state === 'PLAYING') {
+        game.cityOffset = (game.cityOffset + 0.45) % gameW;
+      }
+      const city = ATLAS.cityline;
+      const cityH = 150;
+      const cityY = groundY - cityH;
+      ctx.drawImage(atlas, city.x, city.y, city.w, city.h, -game.cityOffset, cityY, gameW, cityH);
+      ctx.drawImage(atlas, city.x, city.y, city.w, city.h, gameW - game.cityOffset, cityY, gameW, cityH);
+
+      // 3. PIPES LOGIC & RENDERING
+      if (game.state === 'PLAYING') {
+        // Spawn pipe every 95 frames
+        if (game.ticks % 95 === 0) {
+          const minH = 60;
+          const maxH = groundY - game.pipeGap - minH;
+          const topH = Math.floor(Math.random() * (maxH - minH + 1)) + minH;
+          game.pipes.push({
+            x: gameW,
+            topH: topH,
+            scored: false
+          });
+        }
+
+        // Move Pipes & Check Collisions
+        for (let i = game.pipes.length - 1; i >= 0; i--) {
+          const p = game.pipes[i];
+          p.x -= game.speed;
+
+          const bottomY = p.topH + game.pipeGap;
+          const bottomH = groundY - bottomY;
+
+          // Score check
+          if (!p.scored && p.x + game.pipeWidth < game.bird.x) {
+            p.scored = true;
+            game.score++;
+            sfx.score();
+
+            if (game.score > game.highScore) {
+              game.highScore = game.score;
+              game.isNewHigh = true;
+              setHighScore(game.score);
+              localStorage.setItem('flappy_best_score', game.score.toString());
+            }
+          }
+
+          // AABB Collision Check
+          const birdLeft = game.bird.x - game.bird.radius + 3;
+          const birdRight = game.bird.x + game.bird.radius - 3;
+          const birdTop = game.bird.y - game.bird.radius + 3;
+          const birdBottom = game.bird.y + game.bird.radius - 3;
+
+          const collideTop = birdRight > p.x && birdLeft < p.x + game.pipeWidth && birdTop < p.topH;
+          const collideBottom = birdRight > p.x && birdLeft < p.x + game.pipeWidth && birdBottom > bottomY;
+
+          if (collideTop || collideBottom) {
+            triggerHit();
+          }
+
+          // Remove off-screen pipes
+          if (p.x + game.pipeWidth < -20) {
+            game.pipes.splice(i, 1);
+          }
+        }
+      }
+
+      // Draw Pipes
+      game.pipes.forEach(p => {
+        const pipeSprite = ATLAS.pipe;
+        const bottomY = p.topH + game.pipeGap;
+        const bottomH = groundY - bottomY;
+
+        // TOP PIPE (Flipped upside down so collar cap is at bottom)
+        ctx.save();
+        ctx.translate(p.x + game.pipeWidth / 2, p.topH);
+        ctx.scale(1, -1);
+        ctx.drawImage(
+          atlas,
+          pipeSprite.x,
+          pipeSprite.y,
+          pipeSprite.w,
+          pipeSprite.h,
+          -game.pipeWidth / 2,
+          0,
+          game.pipeWidth,
+          p.topH
+        );
+        ctx.restore();
+
+        // BOTTOM PIPE (Normal upright with collar cap at top)
+        ctx.drawImage(
+          atlas,
+          pipeSprite.x,
+          pipeSprite.y,
+          pipeSprite.w,
+          pipeSprite.h,
+          p.x,
+          bottomY,
+          game.pipeWidth,
+          bottomH
+        );
+      });
+
+      // 4. BIRD PHYSICS & ANIMATION
+      const birdFrames = [ATLAS.bird0, ATLAS.bird1, ATLAS.bird2, ATLAS.bird1];
+      if (game.state === 'READY') {
+        // Floating sine wave animation
+        game.bird.y = 290 + Math.sin(game.ticks * 0.08) * 8;
+        game.bird.rotation = 0;
+        game.bird.frameIdx = Math.floor((game.ticks / 6) % 4);
+      } else if (game.state === 'PLAYING') {
+        game.bird.vy += game.bird.gravity;
+        game.bird.y += game.bird.vy;
+
+        // Wing flap speed
+        if (game.bird.vy < 3) {
+          game.bird.frameIdx = Math.floor((game.ticks / 4) % 4);
+        } else {
+          game.bird.frameIdx = 1; // Gliding frame when falling
+        }
+
+        // Tilt rotation interpolation
+        if (game.bird.vy < 0) {
+          game.bird.rotation = -0.38; // 22 degrees up
+        } else if (game.bird.vy > 3) {
+          game.bird.rotation = Math.min(1.57, game.bird.rotation + 0.06); // Dives up to 90 degrees down
+        }
+
+        // Ceiling collision
+        if (game.bird.y - game.bird.radius <= 0) {
+          game.bird.y = game.bird.radius;
+          game.bird.vy = 0;
+        }
+
+        // Ground collision
+        if (game.bird.y + game.bird.radius >= groundY) {
+          game.bird.y = groundY - game.bird.radius;
+          triggerHit();
+        }
+      } else if (game.state === 'OVER') {
+        // Fall directly to the ground
+        if (game.bird.y + game.bird.radius < groundY) {
+          game.bird.vy += game.bird.gravity * 1.5;
+          game.bird.y += game.bird.vy;
+          game.bird.rotation = Math.min(1.57, game.bird.rotation + 0.12);
+        } else {
+          game.bird.y = groundY - game.bird.radius;
+        }
+      }
+
+      // Draw Bird
+      const curFrame = birdFrames[game.bird.frameIdx];
+      ctx.save();
+      ctx.translate(game.bird.x, game.bird.y);
+      ctx.rotate(game.bird.rotation);
+      ctx.drawImage(
+        atlas,
+        curFrame.x,
+        curFrame.y,
+        curFrame.w,
+        curFrame.h,
+        -game.bird.w / 2,
+        -game.bird.h / 2,
+        game.bird.w,
+        game.bird.h
+      );
+      ctx.restore();
+
+      // 5. DRAW SCROLLING GROUND (Drawn over bottom of pipes)
+      if (game.state !== 'OVER') {
+        game.groundOffset = (game.groundOffset + game.speed) % gameW;
+      }
+      const gr = ATLAS.ground;
+      const grH = gameH - groundY;
+      ctx.drawImage(atlas, gr.x, gr.y, gr.w, gr.h, -game.groundOffset, groundY, gameW, grH);
+      ctx.drawImage(atlas, gr.x, gr.y, gr.w, gr.h, gameW - game.groundOffset, groundY, gameW, grH);
+
+      // 6. DRAW GAME STATES OVERLAYS
+      if (game.state === 'READY') {
+        // "GET READY" / GAME TITLE
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 50px "Jersey10", "Press Start 2P", sans-serif';
+        // 3D Shadow
+        ctx.fillStyle = '#000000';
+        ctx.fillText('SKY FLAP', gameW / 2 + 3, 183);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillText('SKY FLAP', gameW / 2 + 1, 181);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('SKY FLAP', gameW / 2, 180);
+
+        // Tap Hint Tutorial Sprite
+        const th = ATLAS.tapHint;
+        const thW = 120;
+        const thH = (th.h / th.w) * thW;
+        ctx.drawImage(atlas, th.x, th.y, th.w, th.h, (gameW - thW) / 2, 380, thW, thH);
+
+        // Instructions Text
+        ctx.font = 'bold 22px "Jersey10", sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.fillText('TAP OR PRESS SPACE', gameW / 2 + 1, 481);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('TAP OR PRESS SPACE', gameW / 2, 480);
+      } else if (game.state === 'PLAYING') {
+        // Bright, Crisp Top Score Counter
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 56px "Jersey10", monospace';
+        // Thick Black Outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 8;
+        ctx.lineJoin = 'miter';
+        ctx.miterLimit = 2;
+        ctx.strokeText(game.score.toString(), gameW / 2, 90);
+        // Pure White Fill
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(game.score.toString(), gameW / 2, 90);
+      } else if (game.state === 'OVER') {
+        // GAME OVER BANNER
+        const go = ATLAS.gameOver;
+        const goW = 230;
+        const goH = (go.h / go.w) * goW;
+        ctx.drawImage(atlas, go.x, go.y, go.w, go.h, (gameW - goW) / 2, 120, goW, goH);
+
+        // SCOREBOARD BRASS PANEL
+        const sb = ATLAS.scoreboard;
+        const sbW = 310;
+        const sbH = (sb.h / sb.w) * sbW;
+        const sbX = (gameW - sbW) / 2;
+        const sbY = 195;
+        ctx.drawImage(atlas, sb.x, sb.y, sb.w, sb.h, sbX, sbY, sbW, sbH);
+
+        // MEDAL IN SLOT
+        let medalSprite = null;
+        if (game.score >= 40) medalSprite = ATLAS.medalPlatinum;
+        else if (game.score >= 30) medalSprite = ATLAS.medalGold;
+        else if (game.score >= 20) medalSprite = ATLAS.medalSilver;
+        else if (game.score >= 10) medalSprite = ATLAS.medalBronze;
+
+        if (medalSprite) {
+          const mW = 54;
+          const mH = 54;
+          const mX = sbX + 38;
+          const mY = sbY + 54;
+          ctx.drawImage(atlas, medalSprite.x, medalSprite.y, medalSprite.w, medalSprite.h, mX, mY, mW, mH);
+        }
+
+        // NEW BEST BADGE
+        if (game.isNewHigh) {
+          const nb = ATLAS.newBadge;
+          const nbW = 42;
+          const nbH = (nb.h / nb.w) * nbW;
+          ctx.drawImage(atlas, nb.x, nb.y, nb.w, nb.h, sbX + 175, sbY + 76, nbW, nbH);
+        }
+
+        // SCORES ON SCOREBOARD (Right-aligned inside the number slots)
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 36px "Jersey10", monospace';
+
+        // Current Score
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(game.score.toString(), sbX + 275, sbY + 68);
+        ctx.fillText(game.score.toString(), sbX + 275, sbY + 68);
+
+        // Best High Score
+        ctx.strokeText(game.highScore.toString(), sbX + 275, sbY + 122);
+        ctx.fillText(game.highScore.toString(), sbX + 275, sbY + 122);
+
+        // RESTART "OK / PLAY" BUTTON
+        const btn = ATLAS.buttonGreen;
+        const btnW = 145;
+        const btnH = (btn.h / btn.w) * btnW;
+        const btnX = (gameW - btnW) / 2;
+        const btnY = 380;
+        ctx.drawImage(atlas, btn.x, btn.y, btn.w, btn.h, btnX, btnY, btnW, btnH);
+
+        // Button label
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 28px "Jersey10", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText('PLAY AGAIN', gameW / 2, btnY + 32);
+        ctx.fillText('PLAY AGAIN', gameW / 2, btnY + 32);
+      }
+
+      // 7. SCREEN FLASH EFFECT ON COLLISION
+      if (game.flashOpacity > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${game.flashOpacity})`;
+        ctx.fillRect(0, 0, gameW, gameH);
+        game.flashOpacity -= 0.08;
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    const triggerHit = () => {
+      const game = g.current;
+      if (game.state === 'OVER') return;
+      game.state = 'OVER';
+      game.flashOpacity = 0.85;
+      sfx.hit();
+      setTimeout(() => sfx.die(), 120);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [atlasLoaded]);
 
   return (
-    <div className="w-full h-screen bg-[#131722] text-[#d1d4dc] flex flex-col font-sans overflow-hidden select-none">
-      
-      {/* 1. TRADINGVIEW TOP BAR (EXACT 1:1 REPLICA) */}
-      <header className="h-[46px] bg-[#1e222d] border-b border-[#2a2e39] flex items-center justify-between px-2 text-xs flex-shrink-0 z-30">
-        
-        {/* Left Section: Logo, Symbol, Timeframes, Indicators */}
-        <div className="flex items-center h-full gap-1 overflow-x-auto no-scrollbar">
-          
-          {/* Official TradingView // Logo */}
-          <div className="flex items-center gap-1.5 px-2 py-1 mr-1 cursor-pointer hover:bg-[#2a2e39] rounded transition">
-            <div className="w-6 h-6 rounded bg-black flex items-center justify-center font-black text-white text-xs tracking-tighter">
-              //
-            </div>
-            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">TradingView</span>
+    <div className="w-full h-full min-h-screen flex justify-center items-center bg-[#0a0e17] overflow-hidden">
+      {/* PERFECTLY CENTERED GAME CABINET */}
+      <div
+        className="game-container relative cursor-pointer"
+        onClick={handleFlap}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          handleFlap();
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={700}
+          className="w-full h-full"
+        />
+
+        {/* LOADING SPINNER UNTIL ATLAS IS READY */}
+        {!atlasLoaded && (
+          <div className="absolute inset-0 bg-[#4ec0ca] flex flex-col justify-center items-center text-white z-50">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="font-bold text-lg font-mono tracking-wider">LOADING SKY FLAP...</div>
           </div>
-
-          <div className="h-5 w-[1px] bg-[#2a2e39] mx-1"></div>
-
-          {/* Symbol Search Button */}
-          <button
-            onClick={() => setSearchModalOpen(true)}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-[#2a2e39] transition text-left group"
-          >
-            <Search className="w-3.5 h-3.5 text-[#787b86] group-hover:text-white" />
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-white text-xs">{selectedItem.name}</span>
-              <span className="text-[11px] text-[#787b86] hidden md:inline">{selectedItem.exchange}</span>
-            </div>
-            <span className="text-[10px] text-[#787b86] border border-[#2a2e39] px-1 rounded hidden lg:inline font-mono">⌘K</span>
-          </button>
-
-          <div className="h-5 w-[1px] bg-[#2a2e39] mx-1"></div>
-
-          {/* Timeframe Selectors */}
-          <div className="flex items-center gap-0.5">
-            {TIMEFRAMES.map(tf => (
-              <button
-                key={tf.label}
-                onClick={() => setInterval(tf.interval)}
-                className={`px-2 py-1 rounded font-medium transition ${
-                  interval === tf.interval
-                    ? 'text-[#2962ff] font-bold bg-[#2962ff]/10'
-                    : 'text-[#787b86] hover:text-[#d1d4dc] hover:bg-[#2a2e39]'
-                }`}
-              >
-                {tf.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-5 w-[1px] bg-[#2a2e39] mx-1"></div>
-
-          {/* Chart Style (Candles, Line, etc.) */}
-          <div className="flex items-center gap-0.5">
-            {CHART_STYLES.map(cs => (
-              <button
-                key={cs.id}
-                onClick={() => setChartStyle(cs.id)}
-                className={`px-2 py-1 rounded transition text-[11px] ${
-                  chartStyle === cs.id
-                    ? 'text-white font-bold bg-[#2a2e39]'
-                    : 'text-[#787b86] hover:text-[#d1d4dc] hover:bg-[#2a2e39]'
-                }`}
-              >
-                {cs.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-5 w-[1px] bg-[#2a2e39] mx-1 hidden sm:block"></div>
-
-          {/* Indicators Button */}
-          <button
-            onClick={() => setIndicatorModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[#2a2e39] transition text-[#d1d4dc] font-medium"
-          >
-            <span className="font-serif italic font-bold text-sm text-[#2962ff]">fx</span>
-            <span className="hidden sm:inline">Indicators</span>
-          </button>
-
-          {/* Alerts & Replay */}
-          <button
-            onClick={() => setActiveRightTab('alerts')}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[#2a2e39] transition text-[#787b86] hover:text-white"
-          >
-            <Bell className="w-3.5 h-3.5 text-[#2962ff]" />
-            <span>Alert</span>
-          </button>
-
-          <button className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-[#2a2e39] transition text-[#787b86] hover:text-white">
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Replay</span>
-          </button>
-
-        </div>
-
-        {/* Right Section: Layout, Fullscreen, Publish */}
-        <div className="flex items-center h-full gap-1 flex-shrink-0">
-          
-          <button className="p-1.5 rounded hover:bg-[#2a2e39] text-[#787b86] hover:text-white transition">
-            <Undo2 className="w-4 h-4" />
-          </button>
-          <button className="p-1.5 rounded hover:bg-[#2a2e39] text-[#787b86] hover:text-white transition">
-            <Redo2 className="w-4 h-4" />
-          </button>
-
-          <div className="h-5 w-[1px] bg-[#2a2e39] mx-1"></div>
-
-          <button
-            onClick={handleTakeSnapshot}
-            className="p-1.5 rounded hover:bg-[#2a2e39] text-[#787b86] hover:text-white transition"
-            title="Take chart screenshot"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
-              } else {
-                document.exitFullscreen().catch(() => {});
-              }
-            }}
-            className="p-1.5 rounded hover:bg-[#2a2e39] text-[#787b86] hover:text-white transition hidden sm:block"
-            title="Toggle fullscreen"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
-
-          {/* TradingView Blue Publish Button */}
-          <button className="px-3.5 py-1 rounded bg-[#2962ff] hover:bg-[#1e53e5] text-white font-semibold text-xs transition shadow-sm ml-1">
-            Publish
-          </button>
-
-          {/* User Profile Avatar */}
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xs ml-1 cursor-pointer">
-            S
-          </div>
-
-        </div>
-
-      </header>
-
-      {/* 2. MAIN WORKSPACE (CHART + RIGHT RAIL + WATCHLIST DRAWER) */}
-      <div className="flex-1 flex w-full h-[calc(100vh-46px-32px)] overflow-hidden relative">
-        
-        {/* CHART VIEWPORT (FILLS ALL AVAILABLE SPACE) */}
-        <div className="flex-1 h-full w-full bg-[#131722] relative overflow-hidden">
-          <div id="tradingview_chart" className="w-full h-full"></div>
-          {!tvReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#131722] text-[#787b86] gap-3">
-              <div className="w-8 h-8 border-2 border-[#2962ff] border-t-transparent rounded-full animate-spin"></div>
-              <div className="text-xs font-mono">Loading TradingView Engine...</div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT WATCHLIST & DETAILS DRAWER */}
-        {sidebarOpen && (
-          <aside className="w-[310px] h-full bg-[#1e222d] border-l border-[#2a2e39] flex flex-col flex-shrink-0 z-20">
-            
-            {/* Watchlist Header */}
-            <div className="h-[40px] px-3 border-b border-[#2a2e39] flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 font-bold text-white uppercase tracking-wider">
-                <List className="w-3.5 h-3.5 text-[#2962ff]" />
-                <span>Watchlist</span>
-              </div>
-              <div className="flex items-center gap-1 text-[#787b86]">
-                <button
-                  onClick={() => setSearchModalOpen(true)}
-                  className="p-1 hover:text-white rounded hover:bg-[#2a2e39]"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="p-1 hover:text-white rounded hover:bg-[#2a2e39]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Watchlist Columns Header */}
-            <div className="px-3 py-1.5 border-b border-[#2a2e39]/60 flex justify-between text-[11px] text-[#787b86] font-medium uppercase tracking-wider">
-              <span>Symbol</span>
-              <div className="flex gap-4">
-                <span>Last</span>
-                <span>Chg %</span>
-              </div>
-            </div>
-
-            {/* Watchlist Items Scroll Area */}
-            <div className="flex-1 overflow-y-auto divide-y divide-[#2a2e39]/30">
-              {WATCHLIST.map(item => {
-                const isSelected = selectedItem.symbol === item.symbol;
-                const isPositive = item.change >= 0;
-
-                return (
-                  <div
-                    key={item.symbol}
-                    onClick={() => setSelectedItem(item)}
-                    className={`px-3 py-2 flex items-center justify-between cursor-pointer transition text-xs ${
-                      isSelected
-                        ? 'bg-[#2a2e39] border-l-2 border-[#2962ff]'
-                        : 'hover:bg-[#2a2e39]/50'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-bold text-white flex items-center gap-1.5">
-                        <span>{item.name}</span>
-                        <span className="text-[10px] text-[#787b86] font-normal">{item.exchange}</span>
-                      </div>
-                      <div className="text-[11px] text-[#787b86] truncate max-w-[120px]">{item.desc}</div>
-                    </div>
-
-                    <div className="text-right font-mono">
-                      <div className="font-semibold text-white">
-                        {item.price > 10 ? item.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : item.price}
-                      </div>
-                      <div className={`text-[11px] font-bold ${isPositive ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                        {isPositive ? '+' : ''}{item.change}%
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* SELECTED SYMBOL DETAIL QUOTE PANEL (BOTTOM OF DRAWER) */}
-            <div className="h-[210px] border-t border-[#2a2e39] bg-[#171b26] p-3 flex flex-col justify-between text-xs">
-              
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-bold text-sm text-white">{selectedItem.name}</div>
-                  <div className="text-[11px] text-[#787b86]">{selectedItem.desc} • {selectedItem.exchange}</div>
-                </div>
-                <div className={`text-xs font-bold px-2 py-0.5 rounded ${
-                  selectedItem.rating.includes('Buy')
-                    ? 'bg-[#089981]/20 text-[#089981] border border-[#089981]/40'
-                    : 'bg-[#f23645]/20 text-[#f23645] border border-[#f23645]/40'
-                }`}>
-                  {selectedItem.rating}
-                </div>
-              </div>
-
-              {/* Price & Change Banner */}
-              <div className="flex items-baseline gap-2 font-mono">
-                <span className="text-2xl font-black text-white">
-                  ${selectedItem.price > 10 ? selectedItem.price.toLocaleString() : selectedItem.price}
-                </span>
-                <span className={`text-xs font-bold flex items-center ${selectedItem.change >= 0 ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                  {selectedItem.change >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                  {selectedItem.change >= 0 ? '+' : ''}{selectedItem.change}%
-                </span>
-              </div>
-
-              {/* Day's Range Indicator */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-[#787b86] font-mono">
-                  <span>Day Range: ${selectedItem.low}</span>
-                  <span>High: ${selectedItem.high}</span>
-                </div>
-                <div className="w-full bg-[#2a2e39] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#2962ff] h-full rounded-full w-[68%]"></div>
-                </div>
-              </div>
-
-              {/* Volume & Market Cap Grid */}
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-[#787b86] font-mono border-t border-[#2a2e39]/60 pt-2">
-                <div>Vol: <strong className="text-white">{selectedItem.vol}</strong></div>
-                <div>Status: <strong className="text-[#089981]">Market Open</strong></div>
-              </div>
-
-            </div>
-
-          </aside>
         )}
-
-        {/* TRADINGVIEW ICON RAIL (RIGHTMOST VERTICAL STRIP) */}
-        <div className="w-[44px] h-full bg-[#1e222d] border-l border-[#2a2e39] flex flex-col items-center justify-between py-2 text-[#787b86] flex-shrink-0 z-30">
-          
-          <div className="flex flex-col gap-2">
-            {[
-              { id: 'watchlist', icon: List, title: 'Watchlist & details' },
-              { id: 'alerts', icon: Bell, title: 'Alerts' },
-              { id: 'news', icon: Newspaper, title: 'News' },
-              { id: 'data', icon: Activity, title: 'Data Window' },
-              { id: 'hotlists', icon: Flame, title: 'Hotlists' },
-              { id: 'calendar', icon: Calendar, title: 'Calendar' },
-              { id: 'ideas', icon: Lightbulb, title: 'My Ideas' },
-              { id: 'chat', icon: MessageSquare, title: 'Public Chats' }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = sidebarOpen && activeRightTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (sidebarOpen && activeRightTab === tab.id) {
-                      setSidebarOpen(false);
-                    } else {
-                      setActiveRightTab(tab.id);
-                      setSidebarOpen(true);
-                    }
-                  }}
-                  title={tab.title}
-                  className={`p-2 rounded hover:text-white hover:bg-[#2a2e39] transition relative ${
-                    isActive ? 'text-[#2962ff] bg-[#2a2e39]' : ''
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#2962ff]"></div>}
-                </button>
-              );
-            })}
-          </div>
-
-          <button className="p-2 rounded hover:text-white hover:bg-[#2a2e39] transition" title="Chart settings">
-            <Settings className="w-4 h-4" />
-          </button>
-
-        </div>
-
       </div>
-
-      {/* 3. TRADINGVIEW BOTTOM BAR (TIME SCALE, PINE EDITOR, TRADING PANEL) */}
-      <footer className="h-[32px] bg-[#1e222d] border-t border-[#2a2e39] flex items-center justify-between px-3 text-[11px] text-[#787b86] flex-shrink-0 z-30 font-mono">
-        
-        {/* Left Bottom Tabs */}
-        <div className="flex items-center gap-1 h-full">
-          {['Pine Editor', 'Strategy Tester', 'Trading Panel'].map(tab => (
-            <button
-              key={tab}
-              className="px-2.5 py-1 rounded hover:bg-[#2a2e39] hover:text-[#d1d4dc] transition"
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Right Bottom Scale Shortcuts */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'].map(s => (
-              <button
-                key={s}
-                className="px-1.5 py-0.5 rounded hover:bg-[#2a2e39] hover:text-[#d1d4dc] transition"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-3 w-[1px] bg-[#2a2e39] mx-1"></div>
-
-          <span>UTC-4</span>
-          <button className="px-1 py-0.5 rounded hover:bg-[#2a2e39] hover:text-[#d1d4dc] font-bold text-white">
-            %
-          </button>
-          <button className="px-1 py-0.5 rounded hover:bg-[#2a2e39] hover:text-[#d1d4dc]">
-            log
-          </button>
-          <button className="px-1 py-0.5 rounded hover:bg-[#2a2e39] hover:text-[#d1d4dc] text-[#2962ff] font-bold">
-            auto
-          </button>
-        </div>
-
-      </footer>
-
-      {/* 4. SYMBOL SEARCH MODAL (EXACT TRADINGVIEW POPUP) */}
-      {searchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-100">
-          <div className="w-full max-w-2xl bg-[#1e222d] border border-[#2a2e39] rounded-xl shadow-2xl flex flex-col overflow-hidden max-h-[80vh]">
-            
-            {/* Search Input Box */}
-            <div className="p-3 border-b border-[#2a2e39] flex items-center gap-3">
-              <Search className="w-5 h-5 text-[#2962ff]" />
-              <input
-                type="text"
-                autoFocus
-                placeholder="Search symbol (e.g. BTCUSDT, AAPL, NVDA, TSLA)..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-white text-sm outline-none placeholder-[#787b86]"
-              />
-              <button
-                onClick={() => setSearchModalOpen(false)}
-                className="text-[#787b86] hover:text-white p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="px-3 py-2 border-b border-[#2a2e39] flex gap-2 text-xs">
-              {['all', 'crypto', 'stocks', 'forex', 'indices', 'commodities'].map(m => (
-                <button
-                  key={m}
-                  onClick={() => setMarketFilter(m)}
-                  className={`px-3 py-1 rounded capitalize font-medium transition ${
-                    marketFilter === m
-                      ? 'bg-[#2962ff] text-white font-bold'
-                      : 'text-[#787b86] hover:text-white hover:bg-[#2a2e39]'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-
-            {/* Symbol Results List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-[#2a2e39]/40 text-xs">
-              {filteredSymbols.map(item => (
-                <div
-                  key={item.symbol}
-                  onClick={() => handleSelectSymbol(item)}
-                  className="px-4 py-3 flex items-center justify-between hover:bg-[#2a2e39] cursor-pointer transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-white text-sm font-mono">{item.name}</span>
-                    <span className="text-[#787b86]">{item.desc}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 rounded bg-[#131722] text-[#787b86] text-[10px] font-bold border border-[#2a2e39]">
-                      {item.exchange}
-                    </span>
-                    <span className="font-mono font-semibold text-white">${item.price}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* 5. INDICATORS & STRATEGIES MODAL */}
-      {indicatorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-100">
-          <div className="w-full max-w-xl bg-[#1e222d] border border-[#2a2e39] rounded-xl shadow-2xl flex flex-col overflow-hidden max-h-[80vh]">
-            
-            <div className="p-3 border-b border-[#2a2e39] flex items-center justify-between">
-              <div className="font-bold text-white text-sm flex items-center gap-2">
-                <span className="font-serif italic text-base text-[#2962ff] font-bold">fx</span>
-                <span>Indicators, Metrics & Strategies</span>
-              </div>
-              <button
-                onClick={() => setIndicatorModalOpen(false)}
-                className="text-[#787b86] hover:text-white p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3 border-b border-[#2a2e39]">
-              <input
-                type="text"
-                placeholder="Search indicators (e.g. RSI, MACD, Volume)..."
-                className="w-full bg-[#131722] px-3 py-2 rounded text-white text-xs outline-none border border-[#2a2e39]"
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto divide-y divide-[#2a2e39]/40 text-xs p-2">
-              {POPULAR_INDICATORS.map(ind => (
-                <div
-                  key={ind.name}
-                  onClick={() => setIndicatorModalOpen(false)}
-                  className="p-3 hover:bg-[#2a2e39] rounded cursor-pointer transition space-y-1"
-                >
-                  <div className="font-bold text-white text-sm">{ind.name}</div>
-                  <div className="text-[11px] text-[#787b86]">{ind.desc}</div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* SNAPSHOT TOAST NOTIFICATION */}
-      {snapshotToast && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 bg-[#2962ff] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom duration-200">
-          <Check className="w-4 h-4" />
-          <span>Chart snapshot copied to clipboard!</span>
-        </div>
-      )}
-
     </div>
   );
 }
