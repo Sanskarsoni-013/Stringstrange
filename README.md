@@ -1,44 +1,51 @@
-# APEX QUANT AI ⚡
-### Autonomous Neural Crypto Trading Signals & Market Intelligence Platform
+# TradingView — Track All Markets
 
-[![Live Platform](https://img.shields.io/badge/Live%20Terminal-stringstrange.online-10b981.svg)](https://www.stringstrange.online)
+[![Live Platform](https://img.shields.io/badge/Live%20Platform-stringstrange.online-2962ff.svg)](https://www.stringstrange.online)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000.svg)](https://stringstrange.vercel.app)
-[![Architecture](https://img.shields.io/badge/Model-Transformer--LSTM%20v4.8-cyan.svg)](#)
-[![Cycle](https://img.shields.io/badge/Signals-Hourly%20Re--train-blue.svg)](#)
+[![Engine](https://img.shields.io/badge/TradingView-Advanced%20Chart-2962ff.svg)](https://www.tradingview.com)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38BDF8.svg)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**APEX QUANT AI** is an institutional-grade quantitative machine learning terminal that analyzes cryptocurrency orderbooks, on-chain whale transactions, volume delta, and technical momentum to generate high-probability trade setups across 4 specialized trading disciplines.
+An exact, authentic 1:1 implementation of the **TradingView** advanced charting terminal, powered by real-time WebSocket feeds and TradingView's Advanced Real-Time Charting Engine.
 
-🌐 **Live Terminal:** [https://www.stringstrange.online](https://www.stringstrange.online)  
+🌐 **Live Chart:** [https://www.stringstrange.online](https://www.stringstrange.online)  
 ⚡ **Mirror:** [https://stringstrange.vercel.app](https://stringstrange.vercel.app)
 
 ---
 
-## 🌟 Trading Disciplines & AI Modules
+## 🌟 Feature & Interface Breakdown
 
-1. **⚡ Scalping & Momentum (5M – 15M)**:
-   - High-frequency orderbook imbalance and volume delta bursts.
-   - Designed for sub-1% stop losses and rapid target capture (SOL, DOGE, SUI).
+### 1. 📈 Official Real-Time Interactive Charting Engine
+- **Live WebSocket Feeds**: Sub-second price ticks from Binance, Coinbase, NASDAQ, AMEX, and FX markets.
+- **Full Drawing Tool Rail**: Trendlines, Fibonacci Retracements, Gann fans, Pitchforks, Brush tools, Long/Short position calculators, Measure tools, Magnet mode, and Erase.
+- **Multiple Chart Types**: Japanese Candlesticks, Heikin Ashi, Line, and Bars.
+- **Multi-Timeframe Analysis**: `1m`, `5m`, `15m`, `1h`, `4h`, `Daily`, `Weekly`, and `Monthly` intervals.
 
-2. **🎯 Intraday Breakouts (1H – 4H)**:
-   - Hourly Transformer-LSTM neural network price action forecasting.
-   - Synchronized with hourly candlestick closes, Bollinger Band volatility squeezes, and EMA crossovers (BTC, ETH, XRP).
+### 2. 🔍 Universal Symbol Search (`Ctrl+K` / `Cmd+K`)
+- Comprehensive symbol search across:
+  - **Crypto**: `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `SUIUSDT`, `XRPUSDT`
+  - **Stocks**: `NVDA`, `TSLA`, `AAPL`, `MSFT`, `AMZN`
+  - **Indices & ETFs**: `SPY`, `QQQ`, `DIA`
+  - **Forex & Commodities**: `EURUSD`, `XAUUSD` (Gold), `USOIL`
 
-3. **🌊 Swing Trading (1D – 1W)**:
-   - Macro liquidity tracking, institutional cold storage accumulation/outflows, and 200 EMA golden cross confirmations.
+### 3. 📋 Live Watchlist & Quote Details Drawer
+- Right sidebar with real-time price updates, 24h percentage changes, and Day's High/Low ranges.
+- **Quote Details Panel**: Volume, 52-Week Range bar, Market Status, and **Technical Rating Gauge** (`Strong Buy` / `Buy` / `Neutral` / `Sell`).
 
-4. **⚖️ Quantitative Arbitrage (Delta-Neutral)**:
-   - Funding rate basis harvest and cross-exchange spread trading with zero directional market exposure.
+### 4. 🧮 Technical Indicators & Strategies Modal
+- 1-click access to technical studies:
+  - Relative Strength Index (RSI)
+  - MACD (Moving Average Convergence Divergence)
+  - Bollinger Bands
+  - Exponential Moving Averages (EMA 20 / 50 / 200)
+  - Volume Profile (VPVR)
+  - SuperTrend
 
----
-
-## 🚀 Key Terminal Features
-
-- **Hourly Model Re-Training Loop**: Synchronized countdown timer calculating live probability adjustments at the top of every hour.
-- **Complete Execution Parameters**: Every signal provides exact Entry Zones, Take Profit 1 & 2, Stop Loss, Risk/Reward Ratio, and recommended leverage.
-- **Interactive Position Size Calculator**: Built-in risk management modal to calculate dollar risk, contract size, and potential payout.
-- **Real-Time Ticker & Sentiment HUD**: Live price tape, 24-hour liquidation trackers, and Market Fear & Greed index.
-- **One-Click Copy Setup**: Seamlessly copy structured trade parameters formatted for Binance, Bybit, OKX, or Coinbase.
+### 5. 🛠️ Navigation & Bottom Bar
+- Bottom console shortcuts for `Pine Editor`, `Strategy Tester`, and `Trading Panel`.
+- Quick time scale selectors: `1D`, `5D`, `1M`, `3M`, `6M`, `YTD`, `1Y`, `5Y`, `All`.
+- Logarithmic, Auto, and Percentage scale toggles.
 
 ---
 
@@ -52,10 +59,10 @@ cd Stringstrange
 # Install dependencies
 npm install
 
-# Start local dev server
+# Run development server
 npm start
 
-# Compile production build
+# Compile production bundle
 npm run build
 ```
 
@@ -63,7 +70,3 @@ npm run build
 
 ## 👤 Author
 - **Sanskar Soni** - [LinkedIn](https://linkedin.com/in/sanskar-soni-669382311) • [GitHub](https://github.com/Sanskarsoni-013)
-
----
-
-> *Disclaimer: APEX QUANT AI is an educational and algorithmic research terminal. Cryptocurrency trading involves substantial financial risk. Always use strict stop-loss management.*
