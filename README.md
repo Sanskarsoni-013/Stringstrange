@@ -1,54 +1,58 @@
-# AeroSat AI: Earth Observation, Orbital Mechanics & Satellite Geospatial ML Platform
+# SkyFlap Airborne 🪶
 
-[![Live Platform](https://img.shields.io/badge/Live%20Platform-stringstrange.online-22c55e.svg)](https://www.stringstrange.online)
+[![Live Game](https://img.shields.io/badge/Play%20Online-stringstrange.online-amber.svg)](https://www.stringstrange.online)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000.svg)](https://stringstrange.vercel.app)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38BDF8.svg)](https://tailwindcss.com/)
+[![Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API-success.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**AeroSat AI** is a real-time satellite earth observation, Keplerian orbital mechanics, and geospatial machine learning platform deployed live at **[https://www.stringstrange.online](https://www.stringstrange.online)**.
+**SkyFlap Airborne** is an ultra-smooth, responsive 60 FPS endless arcade flight game built with modern React, HTML5 Canvas, and real-time synthesized 8-bit sound effects.
+
+🎮 **Play Live Now:** [https://www.stringstrange.online](https://www.stringstrange.online)  
+⚡ **Mirror:** [https://stringstrange.vercel.app](https://stringstrange.vercel.app)
 
 ---
 
-## 🌟 Platform Highlights
+## 🌟 Game Highlights
 
-### 1. 🛰️ Real-Time SGP4 Satellite Tracking & Telemetry
-- **Instantaneous Satellite State Vectors**: Calculates real-time latitude, longitude, altitude (km), and orbital velocity (km/s) using Keplerian orbital mechanics.
-- **Tracked Constellations**:
-  - **ISS (Zarya)**: International Space Station
-  - **Landsat 9**: NASA/USGS Earth Observation
-  - **Sentinel-2A**: ESA Copernicus 13-band optical imaging
-  - **Terra (EOS AM-1)**: NASA MODIS climate & thermal monitoring
-  - **NOAA-20**: Polar-orbiting Visible & Infrared Day/Night Radiometer
-- **Interactive 2D/3D Ground Track Canvas**: Sinusoidal orbital projections, field-of-view swath cones, and next-overhead-pass azimuth predictions.
-
-### 2. 🧠 Multi-Spectral Machine Learning Computer Vision Studio
-- **Normalized Difference Vegetation Index (NDVI)**:
-  $$\text{NDVI} = \frac{\text{NIR} - \text{Red}}{\text{NIR} + \text{Red}}$$
-  Computes pixel-wise canopy vitality, biomass density, and deforestation rates.
-- **Thermal Infrared Anomaly & Wildfire Detection**:
-  Analyzes high-temperature thermal anomalies to calculate Fire Radiative Power (FRP in Megawatts) and predict fire spread vectors.
-- **Deep Land Cover Segmentation**:
-  5-class high-resolution surface classification: Dense Forest, Agriculture, Urban/Impervious, Water, and Barren Soil.
-- **Atmospheric Cloud Masking Filter**:
-  Isolates high-altitude cirrus scattering and ground shadows to deliver standardized surface reflectance.
-
-### 3. 🌍 Global Observation Targets
-- **Amazon Rainforest Basin**: Deforestation & Canopy Loss Monitoring
-- **California Sierra Nevada**: Active Wildfire Thermal Perimeter
-- **Dubai Metropolitan & Coastline**: Rapid Urban Sprawl & Reclamation
-- **Khumbu Glacial Zone**: Cryospheric Mass Balance & Glacier Retreat
-
-### 4. 📊 Space Weather & Live Telemetry Stream
-- Real-time solar wind velocity, geomagnetic Kp-index, cosmic radiation levels, and simulated downlink packet sync.
-- Exportable geospatial intelligence assessment reports (`.json`).
+- **Crisp 60 FPS Canvas Physics**: Precise collision detection, upward flap impulse, downward velocity gravity curves, and pitch-angle rotation interpolation.
+- **Synthesized 8-Bit Web Audio Engine**: Zero external sound file lag. Real-time oscillators synthesize retro flap swooshes, coin chimes, collision thuds, and death sequences directly in the browser.
+- **Multiple Environments (Themes)**:
+  - ☀️ **Daylight Classic**: Vibrant blue skies, procedural clouds, and lush hills.
+  - 🌙 **Midnight Cyber**: Dark neon grid with glowing pipes.
+  - 🌅 **Sunset Synth**: Retro synthwave violet & orange gradients.
+- **Character Skins**:
+  - 🟡 **Classic Goldie**: The iconic round yellow flapper.
+  - 🔵 **Cyber Blue**: High-tech aerial drone with electric thrusters.
+  - 🔴 **Fire Phoenix**: Blazing plumage with sparkling feather particles.
+- **Medal Rewards & High Score Persistence**:
+  - 🥉 Bronze Medal (10+ Score)
+  - 🥈 Silver Medal (20+ Score)
+  - 🥇 Gold Medal (30+ Score)
+  - 💎 Platinum Medal (40+ Score)
+  - LocalStorage high-score tracking.
+- **Full Cross-Platform Support**:
+  - Desktop: `Spacebar`, `Up Arrow`, or Left Mouse Click.
+  - Mobile & Tablet: Screen touch tap with zero pinch/zoom interference.
 
 ---
 
-## 🌐 Live Access
+## ⚡ Local Development
 
-- **Primary Custom Domain**: [https://www.stringstrange.online](https://www.stringstrange.online)
-- **Vercel Mirror**: [https://stringstrange.vercel.app](https://stringstrange.vercel.app)
+```bash
+# Clone the repository
+git clone https://github.com/Sanskarsoni-013/Stringstrange.git
+cd Stringstrange
+
+# Install dependencies
+npm install
+
+# Run locally
+npm start
+
+# Build for production
+npm run build
+```
 
 ---
 
