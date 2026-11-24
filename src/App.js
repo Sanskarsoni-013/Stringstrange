@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Volume2, VolumeX, RotateCcw, Trophy, Sparkles, Moon, Sun, Sunset, Play, Pause, Smartphone } from 'lucide-react';
 
-// SOUND SYNTHESIS USING WEB AUDIO API (Zero external MP3 dependencies)
-class RetroAudio {
+// SOUND SYNTHESIZER USING NATIVE WEB AUDIO API
+class FlappySound {
   constructor() {
     this.ctx = null;
     this.muted = false;
@@ -20,802 +19,553 @@ class RetroAudio {
     }
   }
 
-  playFlap() {
+  flap() {
     if (this.muted || !this.ctx) return;
     try {
-      const now = this.ctx.currentTime;
+      const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
-
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(780, t + 0.09);
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.09);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.09);
     } catch (e) {}
   }
 
-  playPoint() {
+  score() {
     if (this.muted || !this.ctx) return;
     try {
-      const now = this.ctx.currentTime;
+      const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(659, now); // E5
-      osc.frequency.setValueAtTime(880, now + 0.08); // A5
-
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
-
+      osc.frequency.setValueAtTime(659, t);
+      osc.frequency.setValueAtTime(880, t + 0.08);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.22);
     } catch (e) {}
   }
 
-  playHit() {
+  hit() {
     if (this.muted || !this.ctx) return;
     try {
-      const now = this.ctx.currentTime;
+      const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(40, now + 0.16);
-
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
-
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.exponentialRampToValueAtTime(45, t + 0.16);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.16);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.16);
+      osc.start(t);
+      osc.stop(t + 0.16);
     } catch (e) {}
   }
 
-  playDie() {
+  die() {
     if (this.muted || !this.ctx) return;
     try {
-      const now = this.ctx.currentTime;
+      const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(380, now);
-      osc.frequency.linearRampToValueAtTime(110, now + 0.35);
-
-      gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
+      osc.frequency.setValueAtTime(390, t);
+      osc.frequency.linearRampToValueAtTime(110, t + 0.32);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.32);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.35);
+      osc.start(t);
+      osc.stop(t + 0.32);
     } catch (e) {}
   }
 }
 
-const audio = new RetroAudio();
+const sfx = new FlappySound();
 
-// THEMES CONFIGURATION
-const THEMES = {
-  day: {
-    id: 'day',
-    name: 'Daylight Classic',
-    skyTop: '#4ec0ca',
-    skyBottom: '#86e3ce',
-    cloudColor: 'rgba(255, 255, 255, 0.75)',
-    cityColor: '#5bb896',
-    pipeTop: '#73bf2e',
-    pipeBody: '#559c1c',
-    pipeRim: '#2d6108',
-    groundLight: '#ded895',
-    groundDark: '#75bf2f',
-    groundStripe: '#d0c878'
-  },
-  night: {
-    id: 'night',
-    name: 'Midnight Cyber',
-    skyTop: '#0b132b',
-    skyBottom: '#1c2541',
-    cloudColor: 'rgba(91, 105, 140, 0.3)',
-    cityColor: '#090e1f',
-    pipeTop: '#00f5d4',
-    pipeBody: '#00bbf9',
-    pipeRim: '#7209b7',
-    groundLight: '#1f2937',
-    groundDark: '#111827',
-    groundStripe: '#374151'
-  },
-  sunset: {
-    id: 'sunset',
-    name: 'Sunset Synth',
-    skyTop: '#2b1055',
-    skyBottom: '#b83b5e',
-    cloudColor: 'rgba(240, 147, 197, 0.4)',
-    cityColor: '#1d0b33',
-    pipeTop: '#f08a5d',
-    pipeBody: '#ee5253',
-    pipeRim: '#6c1537',
-    groundLight: '#6a097d',
-    groundDark: '#39064f',
-    groundStripe: '#8b0c9e'
-  }
+// PRECISE SPRITE CO-ORDINATES IN ATLAS
+const ATLAS = {
+  bg: { x: 4, y: 4, w: 1440, h: 2560 },
+  cityline: { x: 2568, y: 4, w: 1440, h: 1100 },
+  ground: { x: 1012, y: 2572, w: 1440, h: 530 },
+  bird0: { x: 3624, y: 1112, w: 220, h: 150 },
+  bird1: { x: 3852, y: 1112, w: 220, h: 150 },
+  bird2: { x: 3865, y: 1310, w: 220, h: 232 },
+  pipe: { x: 1452, y: 1310, w: 206, h: 1024 },
+  tapHint: { x: 3400, y: 1310, w: 457, h: 256 },
+  scoreboard: { x: 1666, y: 1310, w: 1446, h: 738 },
+  gameOver: { x: 2136, y: 2342, w: 1089, h: 199 },
+  medalBronze: { x: 3616, y: 2056, w: 220, h: 220 },
+  medalSilver: { x: 1908, y: 2342, w: 220, h: 220 },
+  medalGold: { x: 1452, y: 2342, w: 220, h: 220 },
+  medalPlatinum: { x: 1680, y: 2342, w: 220, h: 220 },
+  newBadge: { x: 3262, y: 2572, w: 206, h: 92 },
+  buttonGreen: { x: 3120, y: 1856, w: 520, h: 168 },
+  buttonYellow: { x: 3233, y: 2342, w: 520, h: 168 }
 };
-
-// SKINS CONFIGURATION
-const SKINS = [
-  { id: 'classic', name: 'Classic Goldie', color: '#facc15', belly: '#fef08a', eye: '#ffffff', beak: '#ea580c' },
-  { id: 'cyber', name: 'Cyber Blue', color: '#38bdf8', belly: '#bae6fd', eye: '#ffffff', beak: '#0284c7' },
-  { id: 'phoenix', name: 'Fire Phoenix', color: '#f87171', belly: '#fecaca', eye: '#ffffff', beak: '#dc2626' }
-];
 
 export default function App() {
   const canvasRef = useRef(null);
+  const atlasImgRef = useRef(null);
+  const [atlasLoaded, setAtlasLoaded] = useState(false);
 
-  // GAME STATES: 'IDLE' | 'PLAYING' | 'GAMEOVER'
-  const [gameState, setGameState] = useState('IDLE');
-  const [score, setScore] = useState(0);
+  // GAME STATE
   const [highScore, setHighScore] = useState(() => {
-    return parseInt(localStorage.getItem('skyflap_high_score') || '0', 10);
+    return parseInt(localStorage.getItem('flappy_best_score') || '0', 10);
   });
-  const [muted, setMuted] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('day');
-  const [currentSkin, setCurrentSkin] = useState(SKINS[0]);
-  const [flashScreen, setFlashScreen] = useState(false);
 
-  // MUTABLE GAME REFS (Avoid React re-render lag during 60 FPS animation loop)
-  const gameRef = useRef({
-    state: 'IDLE',
+  // MUTABLE GAME RUNTIME (60 FPS)
+  const g = useRef({
+    state: 'READY', // 'READY' | 'PLAYING' | 'OVER'
     score: 0,
+    highScore: parseInt(localStorage.getItem('flappy_best_score') || '0', 10),
+    isNewHigh: false,
+    flashOpacity: 0,
+    ticks: 0,
     bird: {
-      x: 80,
-      y: 240,
-      radius: 13,
-      velocity: 0,
-      gravity: 0.28,
-      jump: -5.8,
+      x: 100,
+      y: 290,
+      w: 48,
+      h: 34,
+      radius: 14,
+      vy: 0,
+      gravity: 0.32,
+      jump: -6.4,
       rotation: 0,
-      wingCycle: 0
+      frameIdx: 0
     },
     pipes: [],
     groundOffset: 0,
-    clouds: [
-      { x: 30, y: 70, size: 45, speed: 0.35 },
-      { x: 190, y: 110, size: 60, speed: 0.25 },
-      { x: 340, y: 55, size: 40, speed: 0.4 }
-    ],
-    particles: [],
-    frame: 0,
-    pipeGap: 105,
-    pipeWidth: 54,
-    pipeSpeed: 2.1
+    cityOffset: 0,
+    pipeGap: 140,
+    pipeWidth: 68,
+    speed: 2.5,
+    groundY: 575,
+    gameW: 400,
+    gameH: 700
   });
 
-  // Toggle Mute
-  const toggleMute = () => {
-    audio.muted = !muted;
-    setMuted(!muted);
-  };
-
-  // Trigger Flap
-  const triggerFlap = useCallback(() => {
-    audio.init();
-    const g = gameRef.current;
-
-    if (g.state === 'IDLE') {
-      g.state = 'PLAYING';
-      g.bird.velocity = g.bird.jump;
-      audio.playFlap();
-      setGameState('PLAYING');
-    } else if (g.state === 'PLAYING') {
-      g.bird.velocity = g.bird.jump;
-      audio.playFlap();
-
-      // Spawn Feather Particles
-      for (let i = 0; i < 3; i++) {
-        g.particles.push({
-          x: g.bird.x - 10,
-          y: g.bird.y + (Math.random() * 10 - 5),
-          vx: -(Math.random() * 2 + 1),
-          vy: Math.random() * 2 - 1,
-          size: Math.random() * 3 + 2,
-          life: 1.0,
-          color: currentSkin.belly
-        });
-      }
-    } else if (g.state === 'GAMEOVER') {
-      // Reset Game
-      resetGame();
-    }
-  }, [currentSkin]);
-
-  // Reset Game
-  const resetGame = () => {
-    const g = gameRef.current;
-    g.state = 'IDLE';
-    g.score = 0;
-    g.bird.x = 80;
-    g.bird.y = 240;
-    g.bird.velocity = 0;
-    g.bird.rotation = 0;
-    g.pipes = [];
-    g.particles = [];
-    setScore(0);
-    setGameState('IDLE');
-  };
-
-  // Keyboard and Touch Bindings
+  // Load Atlas Image
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
+    const img = new Image();
+    img.src = '/atlas.webp';
+    img.onload = () => {
+      atlasImgRef.current = img;
+      setAtlasLoaded(true);
+    };
+  }, []);
+
+  // Flap Action Trigger
+  const handleFlap = useCallback(() => {
+    sfx.init();
+    const game = g.current;
+
+    if (game.state === 'READY') {
+      game.state = 'PLAYING';
+      game.bird.vy = game.bird.jump;
+      game.bird.rotation = -0.38;
+      sfx.flap();
+    } else if (game.state === 'PLAYING') {
+      game.bird.vy = game.bird.jump;
+      game.bird.rotation = -0.38;
+      sfx.flap();
+    } else if (game.state === 'OVER') {
+      // If bird has reached ground, allow restart
+      if (game.bird.y >= game.groundY - game.bird.h / 2 - 2) {
+        restartGame();
+      }
+    }
+  }, []);
+
+  const restartGame = () => {
+    const game = g.current;
+    game.state = 'READY';
+    game.score = 0;
+    game.isNewHigh = false;
+    game.bird.x = 100;
+    game.bird.y = 290;
+    game.bird.vy = 0;
+    game.bird.rotation = 0;
+    game.pipes = [];
+    game.flashOpacity = 0;
+  };
+
+  // Keyboard Bindings
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
-        triggerFlap();
+        handleFlap();
       }
     };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleFlap]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [triggerFlap]);
-
-  // Main Canvas Render Loop (60 FPS)
+  // Main 60 FPS Canvas Game Loop
   useEffect(() => {
+    if (!atlasLoaded) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    const groundHeight = 85;
-    const ceiling = 0;
-    const floor = height - groundHeight;
+    const atlas = atlasImgRef.current;
+    let animId;
 
-    let animationFrameId;
+    const loop = () => {
+      const game = g.current;
+      game.ticks++;
+      const { gameW, gameH, groundY } = game;
 
-    const gameLoop = () => {
-      const g = gameRef.current;
-      const theme = THEMES[currentTheme];
-      g.frame++;
+      // 1. DRAW BACKGROUND SKY
+      const bg = ATLAS.bg;
+      ctx.drawImage(atlas, bg.x, bg.y, bg.w, bg.h, 0, 0, gameW, groundY);
 
-      // 1. CLEAR & DRAW SKY GRADIENT
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, floor);
-      skyGrad.addColorStop(0, theme.skyTop);
-      skyGrad.addColorStop(1, theme.skyBottom);
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height);
+      // 2. DRAW CITYLINE (Slow Parallax)
+      if (game.state === 'PLAYING') {
+        game.cityOffset = (game.cityOffset + 0.45) % gameW;
+      }
+      const city = ATLAS.cityline;
+      const cityH = 150;
+      const cityY = groundY - cityH;
+      ctx.drawImage(atlas, city.x, city.y, city.w, city.h, -game.cityOffset, cityY, gameW, cityH);
+      ctx.drawImage(atlas, city.x, city.y, city.w, city.h, gameW - game.cityOffset, cityY, gameW, cityH);
 
-      // 2. DRAW BACKGROUND CLOUDS (Parallax Layer 1)
-      ctx.fillStyle = theme.cloudColor;
-      g.clouds.forEach(c => {
-        if (g.state === 'PLAYING') {
-          c.x -= c.speed;
-          if (c.x + c.size * 2 < 0) c.x = width + 40;
-        }
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.size * 0.45, 0, Math.PI * 2);
-        ctx.arc(c.x + c.size * 0.35, c.y - c.size * 0.2, c.size * 0.5, 0, Math.PI * 2);
-        ctx.arc(c.x + c.size * 0.7, c.y, c.size * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // 3. DRAW CITY SKYLINE SILHOUETTE (Parallax Layer 2)
-      ctx.fillStyle = theme.cityColor;
-      const cityBuildings = [
-        { x: 10, w: 35, h: 65 },
-        { x: 55, w: 25, h: 90 },
-        { x: 90, w: 40, h: 50 },
-        { x: 140, w: 30, h: 75 },
-        { x: 180, w: 45, h: 60 },
-        { x: 235, w: 35, h: 85 },
-        { x: 280, w: 30, h: 55 },
-        { x: 320, w: 40, h: 70 }
-      ];
-      cityBuildings.forEach(b => {
-        const drawX = (b.x - (g.groundOffset * 0.3)) % (width + 60);
-        ctx.fillRect(drawX > -50 ? drawX : drawX + width + 60, floor - b.h, b.w, b.h);
-      });
-
-      // 4. UPDATE & DRAW PIPES
-      if (g.state === 'PLAYING') {
-        // Spawn Pipes
-        if (g.frame % 95 === 0) {
-          const minPipe = 50;
-          const maxPipe = floor - g.pipeGap - minPipe;
-          const topHeight = Math.floor(Math.random() * (maxPipe - minPipe + 1)) + minPipe;
-          g.pipes.push({
-            x: width,
-            topHeight: topHeight,
-            passed: false
+      // 3. PIPES LOGIC & RENDERING
+      if (game.state === 'PLAYING') {
+        // Spawn pipe every 95 frames
+        if (game.ticks % 95 === 0) {
+          const minH = 60;
+          const maxH = groundY - game.pipeGap - minH;
+          const topH = Math.floor(Math.random() * (maxH - minH + 1)) + minH;
+          game.pipes.push({
+            x: gameW,
+            topH: topH,
+            scored: false
           });
         }
 
-        // Move Pipes & Check Collision
-        for (let i = g.pipes.length - 1; i >= 0; i--) {
-          const p = g.pipes[i];
-          p.x -= g.pipeSpeed;
+        // Move Pipes & Check Collisions
+        for (let i = game.pipes.length - 1; i >= 0; i--) {
+          const p = game.pipes[i];
+          p.x -= game.speed;
 
-          const bottomY = p.topHeight + g.pipeGap;
-          const bottomHeight = floor - bottomY;
+          const bottomY = p.topH + game.pipeGap;
+          const bottomH = groundY - bottomY;
 
           // Score check
-          if (!p.passed && p.x + g.pipeWidth < g.bird.x) {
-            p.passed = true;
-            g.score++;
-            setScore(g.score);
-            audio.playPoint();
+          if (!p.scored && p.x + game.pipeWidth < game.bird.x) {
+            p.scored = true;
+            game.score++;
+            sfx.score();
 
-            // High Score Check
-            if (g.score > highScore) {
-              setHighScore(g.score);
-              localStorage.setItem('skyflap_high_score', g.score.toString());
-            }
-
-            // Sparkle Particle Burst on Score
-            for (let s = 0; s < 6; s++) {
-              g.particles.push({
-                x: g.bird.x,
-                y: g.bird.y,
-                vx: (Math.random() - 0.5) * 4,
-                vy: (Math.random() - 0.5) * 4,
-                size: Math.random() * 4 + 2,
-                life: 1.0,
-                color: '#facc15'
-              });
+            if (game.score > game.highScore) {
+              game.highScore = game.score;
+              game.isNewHigh = true;
+              setHighScore(game.score);
+              localStorage.setItem('flappy_best_score', game.score.toString());
             }
           }
 
-          // AABB Collision Detection against Bird circle
-          const birdBox = {
-            left: g.bird.x - g.bird.radius + 2,
-            right: g.bird.x + g.bird.radius - 2,
-            top: g.bird.y - g.bird.radius + 2,
-            bottom: g.bird.y + g.bird.radius - 2
-          };
+          // AABB Collision Check
+          const birdLeft = game.bird.x - game.bird.radius + 3;
+          const birdRight = game.bird.x + game.bird.radius - 3;
+          const birdTop = game.bird.y - game.bird.radius + 3;
+          const birdBottom = game.bird.y + game.bird.radius - 3;
 
-          // Collision with Top Pipe
-          const collideTop = birdBox.right > p.x && birdBox.left < p.x + g.pipeWidth && birdBox.top < p.topHeight;
-          // Collision with Bottom Pipe
-          const collideBottom = birdBox.right > p.x && birdBox.left < p.x + g.pipeWidth && birdBox.bottom > bottomY;
+          const collideTop = birdRight > p.x && birdLeft < p.x + game.pipeWidth && birdTop < p.topH;
+          const collideBottom = birdRight > p.x && birdLeft < p.x + game.pipeWidth && birdBottom > bottomY;
 
           if (collideTop || collideBottom) {
-            // Trigger Death
-            triggerGameOver();
+            triggerHit();
           }
 
           // Remove off-screen pipes
-          if (p.x + g.pipeWidth < -10) {
-            g.pipes.splice(i, 1);
+          if (p.x + game.pipeWidth < -20) {
+            game.pipes.splice(i, 1);
           }
         }
       }
 
       // Draw Pipes
-      g.pipes.forEach(p => {
-        const bottomY = p.topHeight + g.pipeGap;
-        const bottomHeight = floor - bottomY;
+      game.pipes.forEach(p => {
+        const pipeSprite = ATLAS.pipe;
+        const bottomY = p.topH + game.pipeGap;
+        const bottomH = groundY - bottomY;
 
-        // TOP PIPE BODY
-        ctx.fillStyle = theme.pipeBody;
-        ctx.fillRect(p.x, 0, g.pipeWidth, p.topHeight);
-        // Highlight stripe
-        ctx.fillStyle = theme.pipeTop;
-        ctx.fillRect(p.x + 4, 0, 7, p.topHeight);
+        // TOP PIPE (Flipped upside down so collar cap is at bottom)
+        ctx.save();
+        ctx.translate(p.x + game.pipeWidth / 2, p.topH);
+        ctx.scale(1, -1);
+        ctx.drawImage(
+          atlas,
+          pipeSprite.x,
+          pipeSprite.y,
+          pipeSprite.w,
+          pipeSprite.h,
+          -game.pipeWidth / 2,
+          0,
+          game.pipeWidth,
+          p.topH
+        );
+        ctx.restore();
 
-        // TOP PIPE CAP
-        ctx.fillStyle = theme.pipeBody;
-        ctx.fillRect(p.x - 3, p.topHeight - 24, g.pipeWidth + 6, 24);
-        ctx.fillStyle = theme.pipeTop;
-        ctx.fillRect(p.x + 1, p.topHeight - 24, 7, 24);
-        ctx.strokeStyle = theme.pipeRim;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(p.x - 3, p.topHeight - 24, g.pipeWidth + 6, 24);
-
-        // BOTTOM PIPE BODY
-        ctx.fillStyle = theme.pipeBody;
-        ctx.fillRect(p.x, bottomY, g.pipeWidth, bottomHeight);
-        // Highlight stripe
-        ctx.fillStyle = theme.pipeTop;
-        ctx.fillRect(p.x + 4, bottomY, 7, bottomHeight);
-
-        // BOTTOM PIPE CAP
-        ctx.fillStyle = theme.pipeBody;
-        ctx.fillRect(p.x - 3, bottomY, g.pipeWidth + 6, 24);
-        ctx.fillStyle = theme.pipeTop;
-        ctx.fillRect(p.x + 1, bottomY, 7, 24);
-        ctx.strokeStyle = theme.pipeRim;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(p.x - 3, bottomY, g.pipeWidth + 6, 24);
+        // BOTTOM PIPE (Normal upright with collar cap at top)
+        ctx.drawImage(
+          atlas,
+          pipeSprite.x,
+          pipeSprite.y,
+          pipeSprite.w,
+          pipeSprite.h,
+          p.x,
+          bottomY,
+          game.pipeWidth,
+          bottomH
+        );
       });
 
-      // 5. UPDATE BIRD PHYSICS
-      if (g.state === 'IDLE') {
-        // Gentle bobbing motion on title screen
-        g.bird.y = 230 + Math.sin(g.frame * 0.08) * 8;
-        g.bird.rotation = 0;
-      } else if (g.state === 'PLAYING') {
-        g.bird.velocity += g.bird.gravity;
-        g.bird.y += g.bird.velocity;
+      // 4. BIRD PHYSICS & ANIMATION
+      const birdFrames = [ATLAS.bird0, ATLAS.bird1, ATLAS.bird2, ATLAS.bird1];
+      if (game.state === 'READY') {
+        // Floating sine wave animation
+        game.bird.y = 290 + Math.sin(game.ticks * 0.08) * 8;
+        game.bird.rotation = 0;
+        game.bird.frameIdx = Math.floor((game.ticks / 6) % 4);
+      } else if (game.state === 'PLAYING') {
+        game.bird.vy += game.bird.gravity;
+        game.bird.y += game.bird.vy;
 
-        // Upward/Downward Tilt Rotation
-        if (g.bird.velocity < 0) {
-          g.bird.rotation = Math.max(-0.4, g.bird.velocity * 0.08);
+        // Wing flap speed
+        if (game.bird.vy < 3) {
+          game.bird.frameIdx = Math.floor((game.ticks / 4) % 4);
         } else {
-          g.bird.rotation = Math.min(1.2, g.bird.rotation + 0.04);
+          game.bird.frameIdx = 1; // Gliding frame when falling
+        }
+
+        // Tilt rotation interpolation
+        if (game.bird.vy < 0) {
+          game.bird.rotation = -0.38; // 22 degrees up
+        } else if (game.bird.vy > 3) {
+          game.bird.rotation = Math.min(1.57, game.bird.rotation + 0.06); // Dives up to 90 degrees down
         }
 
         // Ceiling collision
-        if (g.bird.y - g.bird.radius <= ceiling) {
-          g.bird.y = ceiling + g.bird.radius;
-          g.bird.velocity = 0;
+        if (game.bird.y - game.bird.radius <= 0) {
+          game.bird.y = game.bird.radius;
+          game.bird.vy = 0;
         }
 
-        // Floor collision
-        if (g.bird.y + g.bird.radius >= floor) {
-          g.bird.y = floor - g.bird.radius;
-          triggerGameOver();
+        // Ground collision
+        if (game.bird.y + game.bird.radius >= groundY) {
+          game.bird.y = groundY - game.bird.radius;
+          triggerHit();
         }
-      } else if (g.state === 'GAMEOVER') {
-        // Fall down until ground
-        if (g.bird.y + g.bird.radius < floor) {
-          g.bird.velocity += g.bird.gravity * 1.5;
-          g.bird.y += g.bird.velocity;
-          g.bird.rotation = Math.min(1.5, g.bird.rotation + 0.1);
+      } else if (game.state === 'OVER') {
+        // Fall directly to the ground
+        if (game.bird.y + game.bird.radius < groundY) {
+          game.bird.vy += game.bird.gravity * 1.5;
+          game.bird.y += game.bird.vy;
+          game.bird.rotation = Math.min(1.57, game.bird.rotation + 0.12);
         } else {
-          g.bird.y = floor - g.bird.radius;
+          game.bird.y = groundY - game.bird.radius;
         }
       }
 
-      // 6. DRAW PARTICLES
-      for (let pIdx = g.particles.length - 1; pIdx >= 0; pIdx--) {
-        const pt = g.particles[pIdx];
-        pt.x += pt.vx;
-        pt.y += pt.vy;
-        pt.life -= 0.04;
-        if (pt.life <= 0) {
-          g.particles.splice(pIdx, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.globalAlpha = pt.life;
-        ctx.fillStyle = pt.color;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // 7. DRAW BIRD SPRITE (Crisp procedural pixel-art style)
+      // Draw Bird
+      const curFrame = birdFrames[game.bird.frameIdx];
       ctx.save();
-      ctx.translate(g.bird.x, g.bird.y);
-      ctx.rotate(g.bird.rotation);
-
-      // Flapping Wing Offset
-      g.bird.wingCycle = (g.bird.wingCycle + 0.25) % (Math.PI * 2);
-      const wingOffset = Math.sin(g.bird.wingCycle) * 4;
-
-      // Bird Main Body
-      ctx.fillStyle = currentSkin.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 16, 13, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Belly / Wing
-      ctx.fillStyle = currentSkin.belly;
-      ctx.beginPath();
-      ctx.ellipse(-4, 3, 9, 6, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Wing Flapper
-      ctx.fillStyle = currentSkin.color;
-      ctx.beginPath();
-      ctx.ellipse(-5, wingOffset, 8, 5, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Eye (Big Expressive Cartoon Eye)
-      ctx.fillStyle = currentSkin.eye;
-      ctx.beginPath();
-      ctx.arc(7, -4, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Pupil
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.arc(9, -4, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eye Glint
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(8, -5.5, 1, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Beak (Orange)
-      ctx.fillStyle = currentSkin.beak;
-      ctx.beginPath();
-      ctx.moveTo(11, -1);
-      ctx.lineTo(21, 2);
-      ctx.lineTo(11, 6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
+      ctx.translate(game.bird.x, game.bird.y);
+      ctx.rotate(game.bird.rotation);
+      ctx.drawImage(
+        atlas,
+        curFrame.x,
+        curFrame.y,
+        curFrame.w,
+        curFrame.h,
+        -game.bird.w / 2,
+        -game.bird.h / 2,
+        game.bird.w,
+        game.bird.h
+      );
       ctx.restore();
 
-      // 8. DRAW SCROLLING GROUND
-      if (g.state === 'PLAYING') {
-        g.groundOffset = (g.groundOffset + g.pipeSpeed) % 24;
+      // 5. DRAW SCROLLING GROUND (Drawn over bottom of pipes)
+      if (game.state !== 'OVER') {
+        game.groundOffset = (game.groundOffset + game.speed) % gameW;
       }
+      const gr = ATLAS.ground;
+      const grH = gameH - groundY;
+      ctx.drawImage(atlas, gr.x, gr.y, gr.w, gr.h, -game.groundOffset, groundY, gameW, grH);
+      ctx.drawImage(atlas, gr.x, gr.y, gr.w, gr.h, gameW - game.groundOffset, groundY, gameW, grH);
 
-      // Ground Top Border (Grass/Ledge)
-      ctx.fillStyle = theme.groundDark;
-      ctx.fillRect(0, floor, width, 14);
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, floor, width, 3);
-
-      // Ground Dirt Base
-      ctx.fillStyle = theme.groundLight;
-      ctx.fillRect(0, floor + 14, width, groundHeight - 14);
-
-      // Scrolling Slanted Grass Pattern
-      ctx.fillStyle = theme.groundStripe;
-      for (let gx = -24; gx < width + 24; gx += 20) {
-        ctx.beginPath();
-        ctx.moveTo(gx - g.groundOffset, floor + 3);
-        ctx.lineTo(gx - g.groundOffset + 10, floor + 3);
-        ctx.lineTo(gx - g.groundOffset + 4, floor + 14);
-        ctx.lineTo(gx - g.groundOffset - 6, floor + 14);
-        ctx.fill();
-      }
-
-      // 9. DRAW SCORE ON CANVAS DURING GAMEPLAY
-      if (g.state === 'PLAYING') {
-        ctx.font = 'bold 38px monospace';
+      // 6. DRAW GAME STATES OVERLAYS
+      if (game.state === 'READY') {
+        // "GET READY" / GAME TITLE
         ctx.textAlign = 'center';
-        // Black text shadow
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText(g.score.toString(), width / 2 + 2, 72);
-        // White foreground
+        ctx.font = 'bold 50px "Jersey10", "Press Start 2P", sans-serif';
+        // 3D Shadow
+        ctx.fillStyle = '#000000';
+        ctx.fillText('SKY FLAP', gameW / 2 + 3, 183);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillText('SKY FLAP', gameW / 2 + 1, 181);
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(g.score.toString(), width / 2, 70);
+        ctx.fillText('SKY FLAP', gameW / 2, 180);
+
+        // Tap Hint Tutorial Sprite
+        const th = ATLAS.tapHint;
+        const thW = 120;
+        const thH = (th.h / th.w) * thW;
+        ctx.drawImage(atlas, th.x, th.y, th.w, th.h, (gameW - thW) / 2, 380, thW, thH);
+
+        // Instructions Text
+        ctx.font = 'bold 22px "Jersey10", sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.fillText('TAP OR PRESS SPACE', gameW / 2 + 1, 481);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('TAP OR PRESS SPACE', gameW / 2, 480);
+      } else if (game.state === 'PLAYING') {
+        // Bright, Crisp Top Score Counter
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 56px "Jersey10", monospace';
+        // Thick Black Outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 8;
+        ctx.lineJoin = 'miter';
+        ctx.miterLimit = 2;
+        ctx.strokeText(game.score.toString(), gameW / 2, 90);
+        // Pure White Fill
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(game.score.toString(), gameW / 2, 90);
+      } else if (game.state === 'OVER') {
+        // GAME OVER BANNER
+        const go = ATLAS.gameOver;
+        const goW = 230;
+        const goH = (go.h / go.w) * goW;
+        ctx.drawImage(atlas, go.x, go.y, go.w, go.h, (gameW - goW) / 2, 120, goW, goH);
+
+        // SCOREBOARD BRASS PANEL
+        const sb = ATLAS.scoreboard;
+        const sbW = 310;
+        const sbH = (sb.h / sb.w) * sbW;
+        const sbX = (gameW - sbW) / 2;
+        const sbY = 195;
+        ctx.drawImage(atlas, sb.x, sb.y, sb.w, sb.h, sbX, sbY, sbW, sbH);
+
+        // MEDAL IN SLOT
+        let medalSprite = null;
+        if (game.score >= 40) medalSprite = ATLAS.medalPlatinum;
+        else if (game.score >= 30) medalSprite = ATLAS.medalGold;
+        else if (game.score >= 20) medalSprite = ATLAS.medalSilver;
+        else if (game.score >= 10) medalSprite = ATLAS.medalBronze;
+
+        if (medalSprite) {
+          const mW = 54;
+          const mH = 54;
+          const mX = sbX + 38;
+          const mY = sbY + 54;
+          ctx.drawImage(atlas, medalSprite.x, medalSprite.y, medalSprite.w, medalSprite.h, mX, mY, mW, mH);
+        }
+
+        // NEW BEST BADGE
+        if (game.isNewHigh) {
+          const nb = ATLAS.newBadge;
+          const nbW = 42;
+          const nbH = (nb.h / nb.w) * nbW;
+          ctx.drawImage(atlas, nb.x, nb.y, nb.w, nb.h, sbX + 175, sbY + 76, nbW, nbH);
+        }
+
+        // SCORES ON SCOREBOARD (Right-aligned inside the number slots)
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 36px "Jersey10", monospace';
+
+        // Current Score
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(game.score.toString(), sbX + 275, sbY + 68);
+        ctx.fillText(game.score.toString(), sbX + 275, sbY + 68);
+
+        // Best High Score
+        ctx.strokeText(game.highScore.toString(), sbX + 275, sbY + 122);
+        ctx.fillText(game.highScore.toString(), sbX + 275, sbY + 122);
+
+        // RESTART "OK / PLAY" BUTTON
+        const btn = ATLAS.buttonGreen;
+        const btnW = 145;
+        const btnH = (btn.h / btn.w) * btnW;
+        const btnX = (gameW - btnW) / 2;
+        const btnY = 380;
+        ctx.drawImage(atlas, btn.x, btn.y, btn.w, btn.h, btnX, btnY, btnW, btnH);
+
+        // Button label
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 28px "Jersey10", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText('PLAY AGAIN', gameW / 2, btnY + 32);
+        ctx.fillText('PLAY AGAIN', gameW / 2, btnY + 32);
       }
 
-      animationFrameId = requestAnimationFrame(gameLoop);
+      // 7. SCREEN FLASH EFFECT ON COLLISION
+      if (game.flashOpacity > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${game.flashOpacity})`;
+        ctx.fillRect(0, 0, gameW, gameH);
+        game.flashOpacity -= 0.08;
+      }
+
+      animId = requestAnimationFrame(loop);
     };
 
-    const triggerGameOver = () => {
-      const g = gameRef.current;
-      if (g.state === 'GAMEOVER') return;
-      g.state = 'GAMEOVER';
-      setGameState('GAMEOVER');
-      audio.playHit();
-      setTimeout(() => audio.playDie(), 120);
-
-      // Screen Flash White
-      setFlashScreen(true);
-      setTimeout(() => setFlashScreen(false), 80);
+    const triggerHit = () => {
+      const game = g.current;
+      if (game.state === 'OVER') return;
+      game.state = 'OVER';
+      game.flashOpacity = 0.85;
+      sfx.hit();
+      setTimeout(() => sfx.die(), 120);
     };
 
-    animationFrameId = requestAnimationFrame(gameLoop);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [currentTheme, currentSkin, highScore]);
-
-  // Determine Medal on Game Over
-  const getMedal = (s) => {
-    if (s >= 40) return { title: 'PLATINUM', color: 'from-cyan-300 to-blue-500', icon: '💎' };
-    if (s >= 30) return { title: 'GOLD', color: 'from-amber-300 to-yellow-600', icon: '🥇' };
-    if (s >= 20) return { title: 'SILVER', color: 'from-slate-200 to-slate-400', icon: '🥈' };
-    if (s >= 10) return { title: 'BRONZE', color: 'from-amber-600 to-amber-800', icon: '🥉' };
-    return null;
-  };
-
-  const medal = getMedal(score);
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [atlasLoaded]);
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-between font-sans selection:bg-amber-500 selection:text-white p-2 sm:p-4 select-none">
-      
-      {/* HEADER / NAVIGATION BAR */}
-      <header className="w-full max-w-md flex justify-between items-center py-2 px-3 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center font-black text-slate-950 text-sm shadow">
-            🪶
-          </div>
-          <div>
-            <h1 className="font-extrabold text-sm tracking-wide text-white">SkyFlap <span className="text-amber-400">Airborne</span></h1>
-            <p className="text-[10px] text-slate-400 font-mono">stringstrange.online</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Mute Button */}
-          <button
-            onClick={toggleMute}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            title={muted ? 'Unmute' : 'Mute'}
-          >
-            {muted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
-        </div>
-      </header>
-
-      {/* GAME CABINET CONTAINER */}
-      <div className="relative w-full max-w-[380px] aspect-[9/16] max-h-[640px] rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 bg-black flex flex-col items-center justify-center">
-        
-        {/* Flash Screen Overlay on Crash */}
-        {flashScreen && (
-          <div className="absolute inset-0 bg-white z-30 pointer-events-none opacity-90 animate-fade-out"></div>
-        )}
-
-        {/* The 60FPS Game Canvas */}
+    <div className="w-full h-full min-h-screen flex justify-center items-center bg-[#0a0e17] overflow-hidden">
+      {/* PERFECTLY CENTERED GAME CABINET */}
+      <div
+        className="game-container relative cursor-pointer"
+        onClick={handleFlap}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          handleFlap();
+        }}
+      >
         <canvas
           ref={canvasRef}
-          width={360}
-          height={600}
-          onClick={triggerFlap}
-          onTouchStart={(e) => { e.preventDefault(); triggerFlap(); }}
-          className="w-full h-full cursor-pointer block touch-none"
+          width={400}
+          height={700}
+          className="w-full h-full"
         />
 
-        {/* OVERLAY: GET READY (IDLE STATE) */}
-        {gameState === 'IDLE' && (
-          <div
-            onClick={triggerFlap}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/35 backdrop-blur-[2px] cursor-pointer"
-          >
-            <div className="text-center space-y-3 animate-bounce">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg">
-                <Sparkles className="w-3.5 h-3.5" /> Tap or Press Space
-              </div>
-              <div className="text-3xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] font-mono">
-                GET READY!
-              </div>
-            </div>
-
-            <div className="mt-8 p-3 rounded-2xl bg-slate-900/80 border border-slate-700/80 text-center max-w-[240px] text-xs text-slate-300 space-y-1 shadow-xl">
-              <div className="flex items-center justify-center gap-1.5 font-bold text-amber-400">
-                <Smartphone className="w-4 h-4" /> Controls
-              </div>
-              <p>Desktop: <strong>Spacebar</strong> or <strong>Click</strong></p>
-              <p>Mobile: <strong>Tap Screen</strong></p>
-            </div>
+        {/* LOADING SPINNER UNTIL ATLAS IS READY */}
+        {!atlasLoaded && (
+          <div className="absolute inset-0 bg-[#4ec0ca] flex flex-col justify-center items-center text-white z-50">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="font-bold text-lg font-mono tracking-wider">LOADING SKY FLAP...</div>
           </div>
         )}
-
-        {/* OVERLAY: GAME OVER SCOREBOARD */}
-        {gameState === 'GAMEOVER' && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-            
-            {/* Scorecard Box */}
-            <div className="w-full max-w-[280px] bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700 rounded-3xl p-5 shadow-2xl space-y-4 text-center">
-              
-              <div className="text-2xl font-black text-rose-400 font-mono tracking-wider drop-shadow">
-                GAME OVER
-              </div>
-
-              {/* Scores Display */}
-              <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 flex justify-around items-center">
-                <div className="text-center">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">SCORE</div>
-                  <div className="text-2xl font-black font-mono text-white">{score}</div>
-                </div>
-                <div className="h-8 w-px bg-slate-800"></div>
-                <div className="text-center">
-                  <div className="text-[10px] uppercase font-bold text-amber-400 flex items-center justify-center gap-1">
-                    <Trophy className="w-3 h-3" /> BEST
-                  </div>
-                  <div className="text-2xl font-black font-mono text-amber-400">{highScore}</div>
-                </div>
-              </div>
-
-              {/* Medal Reward Badge */}
-              {medal ? (
-                <div className="flex items-center justify-center gap-2 p-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
-                  <span className="text-xl">{medal.icon}</span>
-                  <div>
-                    <div className="font-extrabold text-white text-[11px]">{medal.title} MEDAL</div>
-                    <div className="text-[9px] text-emerald-400 font-mono">Achievement Unlocked!</div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[10px] text-slate-500 font-mono">
-                  Score 10+ to unlock Bronze Medal!
-                </div>
-              )}
-
-              {/* Restart Button */}
-              <button
-                onClick={resetGame}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition transform active:scale-95"
-              >
-                <RotateCcw className="w-4 h-4" /> Play Again
-              </button>
-
-            </div>
-
-          </div>
-        )}
-
       </div>
-
-      {/* CUSTOMIZATION BAR: THEMES & SKINS */}
-      <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-2xl p-3 mt-3 flex flex-col gap-2.5">
-        
-        {/* Theme Toggles */}
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Sun className="w-3.5 h-3.5 text-amber-400" /> Environment
-          </span>
-          <div className="flex gap-1.5">
-            {[
-              { id: 'day', icon: Sun, label: 'Day' },
-              { id: 'night', icon: Moon, label: 'Night' },
-              { id: 'sunset', icon: Sunset, label: 'Sunset' }
-            ].map(th => {
-              const Icon = th.icon;
-              return (
-                <button
-                  key={th.id}
-                  onClick={() => setCurrentTheme(th.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                    currentTheme === th.id
-                      ? 'bg-amber-500 text-slate-950 shadow'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" /> {th.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Skin Selector */}
-        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" /> Character
-          </span>
-          <div className="flex gap-1.5">
-            {SKINS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setCurrentSkin(s)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  currentSkin.id === s.id
-                    ? 'bg-slate-700 text-white ring-1 ring-amber-400'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }}></span>
-                {s.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      {/* FOOTER */}
-      <footer className="py-2 text-center text-[11px] text-slate-500">
-        SkyFlap Airborne • Hosted at <a href="https://www.stringstrange.online" className="text-amber-400 hover:underline">stringstrange.online</a>
-      </footer>
-
     </div>
   );
 }
