@@ -1,39 +1,44 @@
-# SkyFlap Airborne 🪶
+# APEX QUANT AI ⚡
+### Autonomous Neural Crypto Trading Signals & Market Intelligence Platform
 
-[![Live Game](https://img.shields.io/badge/Play%20Online-stringstrange.online-amber.svg)](https://www.stringstrange.online)
+[![Live Platform](https://img.shields.io/badge/Live%20Terminal-stringstrange.online-10b981.svg)](https://www.stringstrange.online)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000.svg)](https://stringstrange.vercel.app)
-[![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
-[![Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API-success.svg)](#)
+[![Architecture](https://img.shields.io/badge/Model-Transformer--LSTM%20v4.8-cyan.svg)](#)
+[![Cycle](https://img.shields.io/badge/Signals-Hourly%20Re--train-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**SkyFlap Airborne** is an ultra-smooth, responsive 60 FPS endless arcade flight game built with modern React, HTML5 Canvas, and real-time synthesized 8-bit sound effects.
+**APEX QUANT AI** is an institutional-grade quantitative machine learning terminal that analyzes cryptocurrency orderbooks, on-chain whale transactions, volume delta, and technical momentum to generate high-probability trade setups across 4 specialized trading disciplines.
 
-🎮 **Play Live Now:** [https://www.stringstrange.online](https://www.stringstrange.online)  
+🌐 **Live Terminal:** [https://www.stringstrange.online](https://www.stringstrange.online)  
 ⚡ **Mirror:** [https://stringstrange.vercel.app](https://stringstrange.vercel.app)
 
 ---
 
-## 🌟 Game Highlights
+## 🌟 Trading Disciplines & AI Modules
 
-- **Crisp 60 FPS Canvas Physics**: Precise collision detection, upward flap impulse, downward velocity gravity curves, and pitch-angle rotation interpolation.
-- **Synthesized 8-Bit Web Audio Engine**: Zero external sound file lag. Real-time oscillators synthesize retro flap swooshes, coin chimes, collision thuds, and death sequences directly in the browser.
-- **Multiple Environments (Themes)**:
-  - ☀️ **Daylight Classic**: Vibrant blue skies, procedural clouds, and lush hills.
-  - 🌙 **Midnight Cyber**: Dark neon grid with glowing pipes.
-  - 🌅 **Sunset Synth**: Retro synthwave violet & orange gradients.
-- **Character Skins**:
-  - 🟡 **Classic Goldie**: The iconic round yellow flapper.
-  - 🔵 **Cyber Blue**: High-tech aerial drone with electric thrusters.
-  - 🔴 **Fire Phoenix**: Blazing plumage with sparkling feather particles.
-- **Medal Rewards & High Score Persistence**:
-  - 🥉 Bronze Medal (10+ Score)
-  - 🥈 Silver Medal (20+ Score)
-  - 🥇 Gold Medal (30+ Score)
-  - 💎 Platinum Medal (40+ Score)
-  - LocalStorage high-score tracking.
-- **Full Cross-Platform Support**:
-  - Desktop: `Spacebar`, `Up Arrow`, or Left Mouse Click.
-  - Mobile & Tablet: Screen touch tap with zero pinch/zoom interference.
+1. **⚡ Scalping & Momentum (5M – 15M)**:
+   - High-frequency orderbook imbalance and volume delta bursts.
+   - Designed for sub-1% stop losses and rapid target capture (SOL, DOGE, SUI).
+
+2. **🎯 Intraday Breakouts (1H – 4H)**:
+   - Hourly Transformer-LSTM neural network price action forecasting.
+   - Synchronized with hourly candlestick closes, Bollinger Band volatility squeezes, and EMA crossovers (BTC, ETH, XRP).
+
+3. **🌊 Swing Trading (1D – 1W)**:
+   - Macro liquidity tracking, institutional cold storage accumulation/outflows, and 200 EMA golden cross confirmations.
+
+4. **⚖️ Quantitative Arbitrage (Delta-Neutral)**:
+   - Funding rate basis harvest and cross-exchange spread trading with zero directional market exposure.
+
+---
+
+## 🚀 Key Terminal Features
+
+- **Hourly Model Re-Training Loop**: Synchronized countdown timer calculating live probability adjustments at the top of every hour.
+- **Complete Execution Parameters**: Every signal provides exact Entry Zones, Take Profit 1 & 2, Stop Loss, Risk/Reward Ratio, and recommended leverage.
+- **Interactive Position Size Calculator**: Built-in risk management modal to calculate dollar risk, contract size, and potential payout.
+- **Real-Time Ticker & Sentiment HUD**: Live price tape, 24-hour liquidation trackers, and Market Fear & Greed index.
+- **One-Click Copy Setup**: Seamlessly copy structured trade parameters formatted for Binance, Bybit, OKX, or Coinbase.
 
 ---
 
@@ -47,10 +52,10 @@ cd Stringstrange
 # Install dependencies
 npm install
 
-# Run locally
+# Start local dev server
 npm start
 
-# Build for production
+# Compile production build
 npm run build
 ```
 
@@ -58,3 +63,7 @@ npm run build
 
 ## 👤 Author
 - **Sanskar Soni** - [LinkedIn](https://linkedin.com/in/sanskar-soni-669382311) • [GitHub](https://github.com/Sanskarsoni-013)
+
+---
+
+> *Disclaimer: APEX QUANT AI is an educational and algorithmic research terminal. Cryptocurrency trading involves substantial financial risk. Always use strict stop-loss management.*
