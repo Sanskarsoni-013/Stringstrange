@@ -1,11 +1,60 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
-import { Volume2, VolumeX, RotateCcw, Zap, Play, Trophy, Shield, Activity } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Zap, Play, Trophy, Sun, Moon, Sunrise, Activity } from 'lucide-react';
 
-const SKINS = [
-  { id: 'apex', name: 'APEX CYAN', primary: '#00f3ff', secondary: '#0066ff', glow: 'rgba(0, 243, 255, 0.6)' },
-  { id: 'solar', name: 'SOLAR CRIMSON', primary: '#ff3366', secondary: '#ffaa00', glow: 'rgba(255, 51, 102, 0.6)' },
-  { id: 'void', name: 'VOID PHANTOM', primary: '#b026ff', secondary: '#00ff88', glow: 'rgba(176, 38, 255, 0.6)' },
+// Bright, well-lit themes
+const THEMES = [
+  {
+    id: 'lumina',
+    name: 'AERO LUMINA',
+    icon: Sun,
+    skyTop: '#0284c7', // Bright celestial blue
+    skyMid: '#38bdf8', // Luminous sky cyan
+    skyBottom: '#e0f2fe', // Warm golden/white horizon
+    sunColor: '#fef08a',
+    sunGlow: 'rgba(254, 240, 138, 0.45)',
+    gridColor: 'rgba(2, 132, 199, 0.35)',
+    groundColor: '#0369a1',
+    laserColor: '#0284c7',
+    laserGlow: '#38bdf8',
+    dronePrimary: '#ffffff',
+    droneAccent: '#0284c7',
+    droneFlame: '#f59e0b',
+  },
+  {
+    id: 'sunset',
+    name: 'SUNSET HORIZON',
+    icon: Sunrise,
+    skyTop: '#4c1d95', // Rich purple
+    skyMid: '#db2777', // Vibrant magenta
+    skyBottom: '#fde047', // Radiant sunset gold
+    sunColor: '#fbbf24',
+    sunGlow: 'rgba(251, 191, 36, 0.55)',
+    gridColor: 'rgba(219, 39, 119, 0.4)',
+    groundColor: '#831843',
+    laserColor: '#f43f5e',
+    laserGlow: '#fb7185',
+    dronePrimary: '#ffffff',
+    droneAccent: '#f59e0b',
+    droneFlame: '#ef4444',
+  },
+  {
+    id: 'cyber',
+    name: 'CYBER AURORA',
+    icon: Moon,
+    skyTop: '#0f172a', // Deep slate
+    skyMid: '#065f46', // Vibrant emerald
+    skyBottom: '#6ee7b7', // Glowing mint
+    sunColor: '#34d399',
+    sunGlow: 'rgba(52, 211, 153, 0.4)',
+    gridColor: 'rgba(16, 185, 129, 0.35)',
+    groundColor: '#064e3b',
+    laserColor: '#10b981',
+    laserGlow: '#6ee7b7',
+    dronePrimary: '#ffffff',
+    droneAccent: '#10b981',
+    droneFlame: '#00f3ff',
+  },
 ];
 
 export default function App() {
@@ -15,33 +64,32 @@ export default function App() {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('chronoflap_highscore') || '0', 10);
   });
-  const [overclock, setOverclock] = useState(0); // 0 - 100
+  const [overclock, setOverclock] = useState(0);
   const [isOverclockActive, setIsOverclockActive] = useState(false);
-  const [chronoMode, setChronoMode] = useState('NORMAL'); // NORMAL | SLOWMO | OVERCLOCK
-  const [selectedSkin, setSelectedSkin] = useState(SKINS[0]);
+  const [chronoMode, setChronoMode] = useState('NORMAL');
+  const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
   const [isMuted, setIsMuted] = useState(false);
   const [stats, setStats] = useState({ distance: 0, closeCalls: 0, rings: 0, overclocks: 0 });
 
-  // Web Audio Context & Synthesizer Ref
+  // Web Audio Context Ref
   const audioCtxRef = useRef(null);
-  const bgmOscRef = useRef(null);
-  const bgmGainRef = useRef(null);
 
-  // Core Game Loop State Ref
+  // Main Game Loop Engine Reference
   const gameRef = useRef({
     state: 'START',
     drone: {
-      x: 140,
-      y: 300,
+      x: 160,
+      y: 350,
       vy: 0,
       angle: 0,
-      width: 44,
-      height: 22,
+      width: 46,
+      height: 24,
       trail: [],
     },
     isThrusting: false,
     timeScale: 1.0,
     targetTimeScale: 1.0,
+    graceTimer: 0,
     cameraShake: { x: 0, y: 0, intensity: 0 },
     obstacles: [],
     rings: [],
@@ -56,14 +104,14 @@ export default function App() {
     closeCalls: 0,
     ringsCollected: 0,
     overclockCount: 0,
-    lastTime: 0,
-    nextObstacleDist: 350,
-    nextRingDist: 200,
-    activeSkin: SKINS[0],
+    lastTime: performance.now(),
+    nextObstacleDist: 400,
+    nextRingDist: 220,
+    activeTheme: THEMES[0],
     isMuted: false,
   });
 
-  // Initialize or resume Web Audio
+  // Sound Engine
   const initAudio = useCallback(() => {
     if (!audioCtxRef.current) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -76,54 +124,49 @@ export default function App() {
     }
   }, []);
 
-  // Web Audio Sound Generators
   const playSound = useCallback((type) => {
     if (gameRef.current.isMuted || !audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
     if (ctx.state !== 'running') return;
-
     const now = ctx.currentTime;
 
     try {
-      if (type === 'thrust') {
-        // Deep sub 808 kick + white noise puff
+      if (type === 'flap') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
-        gain.gain.setValueAtTime(0.35, now);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+        gain.gain.setValueAtTime(0.3, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.12);
       } else if (type === 'ring') {
-        // Harmonic arpeggio chime (C5 -> G5)
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
         osc1.type = 'sine';
-        osc2.type = 'triangle';
-        osc1.frequency.setValueAtTime(523.25, now); // C5
-        osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.08); // G5
-        osc2.frequency.setValueAtTime(1046.5, now); // C6
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+        osc2.frequency.setValueAtTime(1174.66, now); // D6
         gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
         osc1.connect(gain);
         osc2.connect(gain);
         gain.connect(ctx.destination);
         osc1.start(now);
         osc2.start(now);
-        osc1.stop(now + 0.25);
-        osc2.stop(now + 0.25);
+        osc1.stop(now + 0.22);
+        osc2.stop(now + 0.22);
       } else if (type === 'closeCall') {
-        // High-tech laser chirp
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, now);
-        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.08);
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(1800, now + 0.09);
         gain.gain.setValueAtTime(0.18, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
         osc.connect(gain);
@@ -131,84 +174,84 @@ export default function App() {
         osc.start(now);
         osc.stop(now + 0.1);
       } else if (type === 'overclock') {
-        // Massive energy surge
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(90, now);
-        osc.frequency.exponentialRampToValueAtTime(450, now + 0.35);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.35);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + 0.45);
       } else if (type === 'shatter') {
-        // Laser shattering explosion
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'square';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.22);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.25);
+        osc.stop(now + 0.22);
       } else if (type === 'crash') {
-        // Deep Game Over explosion impact
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(20, now + 0.6);
-        gain.gain.setValueAtTime(0.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.65);
+        osc.stop(now + 0.55);
       }
     } catch (e) {
-      // Audio fallback safe
+      // safe fallback
     }
   }, []);
 
-  // Update Game Ref with UI props
+  // Sync state props with engine
   useEffect(() => {
-    gameRef.current.activeSkin = selectedSkin;
-  }, [selectedSkin]);
+    gameRef.current.activeTheme = selectedTheme;
+  }, [selectedTheme]);
 
   useEffect(() => {
     gameRef.current.isMuted = isMuted;
   }, [isMuted]);
 
-  // Thrust action triggered by Space, Click or Touch
-  const handleThrustStart = useCallback(() => {
+  // Crisp Flap & Thrust Logic
+  const handleFlap = useCallback(() => {
     initAudio();
-    if (gameRef.current.state === 'START' || gameRef.current.state === 'GAMEOVER') {
+    const g = gameRef.current;
+
+    if (g.state === 'START' || g.state === 'GAMEOVER') {
       startGame();
       return;
     }
-    if (gameRef.current.state !== 'PLAYING') return;
+    if (g.state !== 'PLAYING') return;
 
-    gameRef.current.isThrusting = true;
-    gameRef.current.drone.vy = -7.5; // Upward impulse
-    playSound('thrust');
+    // Crisp upward flap impulse
+    g.drone.vy = -8.2;
+    g.isThrusting = true;
+    playSound('flap');
 
-    // Trigger thruster particle burst
-    const d = gameRef.current.drone;
-    for (let i = 0; i < 6; i++) {
-      gameRef.current.particles.push({
-        x: d.x - 18,
-        y: d.y + (Math.random() - 0.5) * 8,
-        vx: -Math.random() * 6 - 3,
+    // Emit luminous thruster sparks
+    const d = g.drone;
+    for (let i = 0; i < 7; i++) {
+      g.particles.push({
+        x: d.x - 22,
+        y: d.y + (Math.random() - 0.5) * 6,
+        vx: -Math.random() * 7 - 3,
         vy: (Math.random() - 0.5) * 3,
-        color: gameRef.current.activeSkin.primary,
-        size: Math.random() * 3 + 2,
+        color: g.activeTheme.droneFlame,
+        size: Math.random() * 3.5 + 2,
         life: 1.0,
-        decay: Math.random() * 0.04 + 0.03,
+        decay: Math.random() * 0.05 + 0.03,
       });
     }
   }, [initAudio, playSound]);
@@ -217,27 +260,27 @@ export default function App() {
     gameRef.current.isThrusting = false;
   }, []);
 
-  // Reset and start new run
+  // Start fresh game run
   const startGame = useCallback(() => {
     initAudio();
-    const canvas = canvasRef.current;
-    const h = canvas ? canvas.height : 600;
+    const logicalHeight = window.innerHeight;
 
     gameRef.current = {
       ...gameRef.current,
       state: 'PLAYING',
       drone: {
-        x: 140,
-        y: h / 2,
-        vy: -2,
+        x: 160,
+        y: Math.max(150, logicalHeight * 0.45), // Safe vertical center
+        vy: -3.0,
         angle: 0,
-        width: 44,
-        height: 22,
+        width: 46,
+        height: 24,
         trail: [],
       },
       isThrusting: false,
       timeScale: 1.0,
       targetTimeScale: 1.0,
+      graceTimer: 1.2, // 1.2 second spawn invulnerability
       cameraShake: { x: 0, y: 0, intensity: 0 },
       obstacles: [],
       rings: [],
@@ -253,9 +296,9 @@ export default function App() {
       ringsCollected: 0,
       overclockCount: 0,
       lastTime: performance.now(),
-      nextObstacleDist: 280,
-      nextRingDist: 150,
-      activeSkin: selectedSkin,
+      nextObstacleDist: 480, // Ample reaction space before first obstacle
+      nextRingDist: 240,
+      activeTheme: selectedTheme,
       isMuted: isMuted,
     };
 
@@ -264,9 +307,9 @@ export default function App() {
     setOverclock(0);
     setIsOverclockActive(false);
     setChronoMode('NORMAL');
-  }, [initAudio, selectedSkin, isMuted]);
+  }, [initAudio, selectedTheme, isMuted]);
 
-  // Main Canvas Render & Animation Loop
+  // Main 60-120 FPS Canvas Rendering Engine
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -278,23 +321,22 @@ export default function App() {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      ctx.scale(dpr, dpr);
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Particle & Fragment spawner helpers
+    // Fragment spawner for laser gate shatters
     const spawnLaserShatter = (x, y, h, color) => {
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 28; i++) {
         gameRef.current.fragments.push({
-          x: x + (Math.random() - 0.5) * 20,
+          x: x + (Math.random() - 0.5) * 24,
           y: y + Math.random() * h,
-          vx: (Math.random() - 0.5) * 12 + 4,
-          vy: (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 14 + 5,
+          vy: (Math.random() - 0.5) * 12,
           rotation: Math.random() * Math.PI * 2,
-          rotSpeed: (Math.random() - 0.5) * 0.3,
-          size: Math.random() * 8 + 4,
+          rotSpeed: (Math.random() - 0.5) * 0.4,
+          size: Math.random() * 9 + 4,
           color: color,
           life: 1.0,
           decay: Math.random() * 0.03 + 0.02,
@@ -309,41 +351,54 @@ export default function App() {
         y,
         color,
         life: 1.0,
-        decay: 0.025,
+        decay: 0.022,
       });
     };
 
-    // Main Update & Render Function
+    // The Master Animation Frame
     const render = (timestamp) => {
+      // Ensure loop NEVER dies
+      animationFrameId = requestAnimationFrame(render);
+
       const g = gameRef.current;
+      const theme = g.activeTheme;
       const width = window.innerWidth;
       const height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+
+      // Always reset transform to exact DPR so all drawing coordinates are pure logical CSS pixels
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       if (!g.lastTime) g.lastTime = timestamp;
-      const rawDt = Math.min((timestamp - g.lastTime) / 1000, 0.1);
+      const rawDt = Math.min((timestamp - g.lastTime) / 1000, 0.06);
       g.lastTime = timestamp;
 
-      // 1. CHRONO TIME DILATION LOGIC
+      // Update grace invulnerability timer
+      if (g.graceTimer > 0) {
+        g.graceTimer -= rawDt;
+      }
+
+      // 1. CHRONO TIME DILATION
       if (g.state === 'PLAYING') {
         if (g.isOverclockActive) {
-          g.targetTimeScale = 2.4; // Hyperdrive speed
+          g.targetTimeScale = 2.2;
         } else if (g.isThrusting) {
-          g.targetTimeScale = 1.0; // Normal active speed
+          g.targetTimeScale = 1.0;
         } else {
-          g.targetTimeScale = 0.22; // Bullet-Time Slow Motion
+          // Responsive tactical slow-motion (0.45x)
+          g.targetTimeScale = 0.45;
         }
       } else {
         g.targetTimeScale = 0.5;
       }
 
-      // Smooth interpolation of current time scale
-      g.timeScale += (g.targetTimeScale - g.timeScale) * 0.18;
+      g.timeScale += (g.targetTimeScale - g.timeScale) * 0.2;
       const dt = rawDt * g.timeScale;
 
-      // Sync React UI Chrono Mode
+      // Synchronize UI badge
       if (g.isOverclockActive) {
         setChronoMode('OVERCLOCK');
-      } else if (g.timeScale < 0.6) {
+      } else if (g.timeScale < 0.65) {
         setChronoMode('SLOWMO');
       } else {
         setChronoMode('NORMAL');
@@ -363,79 +418,107 @@ export default function App() {
       ctx.save();
       ctx.translate(g.cameraShake.x, g.cameraShake.y);
 
-      // 2. BACKGROUND RENDERING (Cyber Grid & Skyline)
-      ctx.fillStyle = '#070913';
+      // 2. BRIGHT, ILLUMINATED SKY & ENVIRONMENT RENDERING
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+      skyGrad.addColorStop(0, theme.skyTop);
+      skyGrad.addColorStop(0.55, theme.skyMid);
+      skyGrad.addColorStop(1, theme.skyBottom);
+      ctx.fillStyle = skyGrad;
       ctx.fillRect(-20, -20, width + 40, height + 40);
 
-      // Distant stars / dust
-      const baseScroll = g.distance * 0.15;
-      ctx.fillStyle = 'rgba(0, 243, 255, 0.25)';
-      for (let i = 0; i < 40; i++) {
-        const starX = ((i * 137 - baseScroll * 0.5) % width + width) % width;
-        const starY = (i * 97) % height;
-        const size = (i % 3) + 1;
-        ctx.fillRect(starX, starY, size, size);
+      // Radiant Sun / Light Flare
+      const sunX = width * 0.75;
+      const sunY = height * 0.22;
+      const sunGlowGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 140);
+      sunGlowGrad.addColorStop(0, theme.sunColor);
+      sunGlowGrad.addColorStop(0.3, theme.sunGlow);
+      sunGlowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = sunGlowGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 140, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Atmospheric Luminous Clouds / Dust Particles
+      const baseScroll = g.distance * 0.2;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      for (let i = 0; i < 20; i++) {
+        const cx = ((i * 180 - baseScroll * 0.4) % (width + 300) + width + 300) % (width + 300) - 150;
+        const cy = ((i * 53) % (height * 0.45)) + 40;
+        const cRad = 35 + (i % 4) * 15;
+        ctx.beginPath();
+        ctx.arc(cx, cy, cRad, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // Horizon Cityscape Parallax
-      const cityScroll = (g.distance * 0.3) % width;
-      ctx.fillStyle = 'rgba(12, 17, 33, 0.9)';
-      for (let i = 0; i < 15; i++) {
-        const bWidth = 90 + (i % 5) * 25;
-        const bHeight = 120 + ((i * 37) % 180);
-        const bX = ((i * 110 - cityScroll) % (width + 200)) - 100;
-        ctx.fillRect(bX, height - bHeight - 40, bWidth, bHeight);
+      // Parallax Luminous City Skyline
+      const cityScroll = (g.distance * 0.35) % (width + 300);
+      for (let i = 0; i < 16; i++) {
+        const bWidth = 85 + (i % 5) * 30;
+        const bHeight = 110 + ((i * 47) % 200);
+        const bX = ((i * 125 - cityScroll) % (width + 300) + width + 300) % (width + 300) - 150;
 
-        // Neon rooftop beacon
-        if (i % 3 === 0) {
-          ctx.fillStyle = 'rgba(0, 243, 255, 0.5)';
-          ctx.fillRect(bX + bWidth / 2 - 2, height - bHeight - 50, 4, 10);
-          ctx.fillStyle = 'rgba(12, 17, 33, 0.9)';
-        }
+        // Clean white/chrome building with glass gradient
+        const bGrad = ctx.createLinearGradient(0, height - bHeight - 50, 0, height);
+        bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+        bGrad.addColorStop(1, 'rgba(224, 242, 254, 0.95)');
+        ctx.fillStyle = bGrad;
+        ctx.fillRect(bX, height - bHeight - 50, bWidth, bHeight);
+
+        // Building borders & illuminated windows
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bX, height - bHeight - 50, bWidth, bHeight);
+
+        // Rooftop antenna beacon
+        ctx.fillStyle = theme.laserGlow;
+        ctx.fillRect(bX + bWidth / 2 - 2, height - bHeight - 65, 4, 15);
       }
 
-      // 3D Perspective Ground Grid
-      const groundY = height - 40;
+      // Ground Luminous Runway & Perspective Grid
+      const groundY = height - 45;
+      const ceilY = 45;
+
       const groundGrad = ctx.createLinearGradient(0, groundY, 0, height);
-      groundGrad.addColorStop(0, 'rgba(0, 243, 255, 0.4)');
-      groundGrad.addColorStop(1, 'rgba(5, 7, 15, 0.95)');
+      groundGrad.addColorStop(0, theme.groundColor);
+      groundGrad.addColorStop(1, '#02182b');
       ctx.fillStyle = groundGrad;
       ctx.fillRect(0, groundY, width, height - groundY);
 
-      ctx.strokeStyle = 'rgba(0, 243, 255, 0.25)';
-      ctx.lineWidth = 1;
-      const gridOffset = (g.distance * 2.5) % 40;
-      for (let x = -gridOffset; x < width; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, groundY);
-        ctx.lineTo(x - 60, height);
-        ctx.stroke();
-      }
+      // Glowing Runway Horizon Line
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = theme.laserGlow;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.moveTo(0, groundY);
       ctx.lineTo(width, groundY);
       ctx.stroke();
+      ctx.shadowBlur = 0;
 
-      // Ceiling Hazard Grid
-      const ceilY = 40;
-      ctx.strokeStyle = 'rgba(255, 0, 85, 0.2)';
-      for (let x = -gridOffset; x < width; x += 40) {
+      // Ground Perspective Lines
+      ctx.strokeStyle = theme.gridColor;
+      ctx.lineWidth = 1.5;
+      const gridOffset = (g.distance * 3) % 45;
+      for (let x = -gridOffset; x < width + 60; x += 45) {
         ctx.beginPath();
-        ctx.moveTo(x, ceilY);
-        ctx.lineTo(x - 40, 0);
+        ctx.moveTo(x, groundY);
+        ctx.lineTo(x - 70, height);
         ctx.stroke();
       }
+
+      // Ceiling Guide Border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
       ctx.beginPath();
       ctx.moveTo(0, ceilY);
       ctx.lineTo(width, ceilY);
       ctx.stroke();
 
-      // 3. GAMEPLAY SIMULATION & UPDATES
+      // 3. GAMEPLAY SIMULATION
       if (g.state === 'PLAYING') {
-        const speed = (g.isOverclockActive ? 520 : 280);
+        const speed = (g.isOverclockActive ? 560 : 300);
         g.distance += speed * dt;
 
-        // Overclock countdown
+        // Overclock Timer
         if (g.isOverclockActive) {
           g.overclockTimer -= dt;
           setOverclock(Math.max(0, (g.overclockTimer / 4.5) * 100));
@@ -447,182 +530,169 @@ export default function App() {
           }
         }
 
-        // Drone Physics
-        const gravity = 18.0;
+        // Drone Physics & Gravity
+        const gravity = 20.0;
         g.drone.vy += gravity * dt;
         g.drone.y += g.drone.vy * dt * 60;
 
-        // Pitch angle interpolation
-        const targetAngle = Math.max(-0.45, Math.min(0.65, g.drone.vy * 0.05));
-        g.drone.angle += (targetAngle - g.drone.angle) * 0.15;
+        // Aerodynamic pitch angle
+        const targetAngle = Math.max(-0.4, Math.min(0.55, g.drone.vy * 0.05));
+        g.drone.angle += (targetAngle - g.drone.angle) * 0.18;
 
-        // Boundary collision check
+        // Ceiling bounce
         if (g.drone.y - 12 <= ceilY) {
           g.drone.y = ceilY + 12;
           g.drone.vy = 2;
         }
-        if (g.drone.y + 12 >= groundY) {
-          triggerGameOver('CRASHED INTO GRID HAZARD');
+
+        // Ground collision (only if grace period has expired)
+        if (g.drone.y + 12 >= groundY && g.graceTimer <= 0) {
+          triggerGameOver('COLLIDED WITH SURFACE RUNWAY');
         }
 
-        // Afterburner trail
-        g.drone.trail.unshift({ x: g.drone.x - 14, y: g.drone.y, alpha: 1.0 });
-        if (g.drone.trail.length > 16) g.drone.trail.pop();
+        // Afterburner trail history
+        g.drone.trail.unshift({ x: g.drone.x - 16, y: g.drone.y, alpha: 1.0 });
+        if (g.drone.trail.length > 18) g.drone.trail.pop();
 
         // Spawn Laser Pylons
         g.nextObstacleDist -= speed * dt;
         if (g.nextObstacleDist <= 0) {
-          const gapSize = Math.max(145, 195 - Math.min(g.distance * 0.005, 45));
-          const minY = ceilY + 50;
-          const maxY = groundY - gapSize - 50;
-          const gapY = Math.random() * (maxY - minY) + minY;
+          const gapSize = Math.max(160, 210 - Math.min(g.distance * 0.004, 50));
+          const minY = ceilY + 60;
+          const maxY = groundY - gapSize - 60;
+          const gapY = Math.random() * Math.max(20, maxY - minY) + minY;
 
           g.obstacles.push({
-            x: width + 50,
+            x: width + 60,
             gapY,
             gapSize,
-            width: 38,
+            width: 44,
             passed: false,
             closeCallDone: false,
             shattered: false,
-            color: Math.random() > 0.4 ? '#00f3ff' : '#ff0055',
           });
-          g.nextObstacleDist = Math.random() * 120 + 260;
+          g.nextObstacleDist = Math.random() * 140 + 280;
         }
 
         // Spawn Energy Rings
         g.nextRingDist -= speed * dt;
         if (g.nextRingDist <= 0) {
-          const ry = Math.random() * (groundY - ceilY - 140) + ceilY + 70;
+          const ry = Math.random() * (groundY - ceilY - 160) + ceilY + 80;
           g.rings.push({
-            x: width + 40,
+            x: width + 50,
             y: ry,
-            radius: 18,
+            radius: 20,
             angle: 0,
             collected: false,
           });
-          g.nextRingDist = Math.random() * 220 + 180;
+          g.nextRingDist = Math.random() * 200 + 190;
         }
 
-        // Score accumulation over distance
+        // Score Accumulation
         g.score += (g.isOverclockActive ? 8 : 2) * dt * 10;
         setScore(Math.floor(g.score));
       }
 
-      // 4. RENDER OBSTACLES (Laser Pylons)
+      // 4. RENDER OBSTACLES (Bright Glowing Laser Pylons)
       for (let i = g.obstacles.length - 1; i >= 0; i--) {
         const obs = g.obstacles[i];
         if (g.state === 'PLAYING') {
-          obs.x -= (g.isOverclockActive ? 520 : 280) * dt;
+          obs.x -= (g.isOverclockActive ? 560 : 300) * dt;
         }
 
-        if (obs.shattered) {
-          // Skip drawing laser if shattered in Overclock
-          continue;
-        }
+        if (obs.shattered) continue;
 
         const topHeight = obs.gapY;
         const bottomY = obs.gapY + obs.gapSize;
         const bottomHeight = groundY - bottomY;
 
-        // Top Pylon Housing
-        ctx.fillStyle = '#101524';
-        ctx.strokeStyle = obs.color;
-        ctx.lineWidth = 2;
+        // Top Pylon Post
+        const pylonGrad = ctx.createLinearGradient(obs.x - 22, 0, obs.x + 22, 0);
+        pylonGrad.addColorStop(0, '#ffffff');
+        pylonGrad.addColorStop(0.5, '#e2e8f0');
+        pylonGrad.addColorStop(1, '#94a3b8');
+        ctx.fillStyle = pylonGrad;
+        ctx.strokeStyle = theme.laserColor;
+        ctx.lineWidth = 2.5;
+
         ctx.fillRect(obs.x - obs.width / 2, ceilY, obs.width, topHeight - ceilY);
         ctx.strokeRect(obs.x - obs.width / 2, ceilY, obs.width, topHeight - ceilY);
 
-        // Bottom Pylon Housing
+        // Bottom Pylon Post
         ctx.fillRect(obs.x - obs.width / 2, bottomY, obs.width, bottomHeight);
         ctx.strokeRect(obs.x - obs.width / 2, bottomY, obs.width, bottomHeight);
 
-        // Glowing Laser Emitter Nodes
-        ctx.fillStyle = obs.color;
-        ctx.shadowColor = obs.color;
-        ctx.shadowBlur = 14;
-        ctx.fillRect(obs.x - 12, topHeight - 8, 24, 8);
-        ctx.fillRect(obs.x - 12, bottomY, 24, 8);
+        // High-Brightness Laser Emitter Rings
+        ctx.fillStyle = theme.laserGlow;
+        ctx.shadowColor = theme.laserGlow;
+        ctx.shadowBlur = 16;
+        ctx.fillRect(obs.x - 16, topHeight - 10, 32, 10);
+        ctx.fillRect(obs.x - 16, bottomY, 32, 10);
 
-        // Glowing High-Energy Laser Beam
-        const laserGrad = ctx.createLinearGradient(obs.x - 8, 0, obs.x + 8, 0);
-        laserGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-        laserGrad.addColorStop(0.5, obs.color);
-        laserGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+        // Brilliant Laser Beam
+        const beamGrad = ctx.createLinearGradient(obs.x - 10, 0, obs.x + 10, 0);
+        beamGrad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        beamGrad.addColorStop(0.5, theme.laserGlow);
+        beamGrad.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(obs.x - 6, topHeight, 12, obs.gapSize);
 
-        ctx.fillStyle = laserGrad;
-        ctx.fillRect(obs.x - 4, topHeight, 8, obs.gapSize);
-
-        // Electric Core Stream
+        // Pure white core beam
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(obs.x - 1.5, topHeight, 3, obs.gapSize);
+        ctx.fillRect(obs.x - 2, topHeight, 4, obs.gapSize);
         ctx.shadowBlur = 0;
 
-        // Laser particle sparks
-        if (Math.random() < 0.3) {
-          g.particles.push({
-            x: obs.x + (Math.random() - 0.5) * 8,
-            y: obs.gapY + Math.random() * obs.gapSize,
-            vx: (Math.random() - 0.5) * 3,
-            vy: (Math.random() - 0.5) * 3,
-            color: obs.color,
-            size: Math.random() * 2 + 1,
-            life: 1.0,
-            decay: 0.05,
-          });
-        }
-
-        // Collision & Close Call Detection
+        // Collision & Close Call Logic
         if (g.state === 'PLAYING') {
           const dx = Math.abs(g.drone.x - obs.x);
           const dy = g.drone.y;
 
-          if (dx < obs.width / 2 + 14) {
-            // Overclock destroys laser gates
+          if (dx < obs.width / 2 + 16) {
+            // Overclock shatters laser gates
             if (g.isOverclockActive) {
               obs.shattered = true;
-              g.cameraShake.intensity = 16;
-              spawnLaserShatter(obs.x, ceilY, groundY - ceilY, obs.color);
+              g.cameraShake.intensity = 18;
+              spawnLaserShatter(obs.x, ceilY, groundY - ceilY, theme.laserGlow);
               playSound('shatter');
-              addFloatingText('+100 SHATTER!', obs.x, g.drone.y, '#ffaa00');
+              addFloatingText('+100 SHATTER!', obs.x, g.drone.y, '#f59e0b');
               g.score += 100;
               continue;
             }
 
-            // Normal Collision
-            if (dy - 10 < topHeight || dy + 10 > bottomY) {
-              triggerGameOver('VAPORIZED BY HIGH-VOLTAGE LASER');
-              return;
+            // Normal Collision (ignored during grace period)
+            if (g.graceTimer <= 0) {
+              if (dy - 12 < topHeight || dy + 12 > bottomY) {
+                triggerGameOver('VAPORIZED BY LASER PYLON');
+              }
             }
 
-            // Close Call Detection (Threaded within 16px of beam)
-            if (!obs.closeCallDone && (Math.abs(dy - 10 - topHeight) < 18 || Math.abs(dy + 10 - bottomY) < 18)) {
+            // Close Call Detection (Threaded within 20px)
+            if (!obs.closeCallDone && (Math.abs(dy - 12 - topHeight) < 22 || Math.abs(dy + 12 - bottomY) < 22)) {
               obs.closeCallDone = true;
               g.closeCalls++;
-              g.overclock = Math.min(100, g.overclock + 18);
+              g.overclock = Math.min(100, g.overclock + 20);
               setOverclock(g.overclock);
               g.score += 50;
               g.cameraShake.intensity = 8;
               playSound('closeCall');
-              addFloatingText('⚡ CLOSE CALL +50', g.drone.x + 20, g.drone.y - 20, '#00f3ff');
+              addFloatingText('⚡ CLOSE CALL +50', g.drone.x + 20, g.drone.y - 20, '#0284c7');
             }
           }
 
-          // Pass laser gate successfully
+          // Successfully cleared gate
           if (!obs.passed && g.drone.x > obs.x + obs.width / 2) {
             obs.passed = true;
-            g.score += 20;
-            g.overclock = Math.min(100, g.overclock + 12);
+            g.score += 25;
+            g.overclock = Math.min(100, g.overclock + 14);
             setOverclock(g.overclock);
 
-            // Auto-trigger Overclock when reaching 100%
             if (g.overclock >= 100 && !g.isOverclockActive) {
               activateOverclock();
             }
           }
         }
 
-        // Clean up passed obstacles
-        if (obs.x < -80) {
+        if (obs.x < -100) {
           g.obstacles.splice(i, 1);
         }
       }
@@ -631,32 +701,30 @@ export default function App() {
       for (let i = g.rings.length - 1; i >= 0; i--) {
         const ring = g.rings[i];
         if (g.state === 'PLAYING') {
-          ring.x -= (g.isOverclockActive ? 520 : 280) * dt;
+          ring.x -= (g.isOverclockActive ? 560 : 300) * dt;
           ring.angle += dt * 4;
 
-          // Pickup check
           const dist = Math.hypot(g.drone.x - ring.x, g.drone.y - ring.y);
-          if (dist < ring.radius + 16 && !ring.collected) {
+          if (dist < ring.radius + 18 && !ring.collected) {
             ring.collected = true;
             g.ringsCollected++;
             g.overclock = Math.min(100, g.overclock + 25);
             setOverclock(g.overclock);
             g.score += 75;
             playSound('ring');
-            addFloatingText('+75 ENERGY', ring.x, ring.y, '#00ff88');
+            addFloatingText('+75 ENERGY', ring.x, ring.y, '#10b981');
 
-            // Ring collect burst
-            for (let p = 0; p < 14; p++) {
-              const ang = (p / 14) * Math.PI * 2;
+            for (let p = 0; p < 12; p++) {
+              const ang = (p / 12) * Math.PI * 2;
               g.particles.push({
                 x: ring.x,
                 y: ring.y,
                 vx: Math.cos(ang) * (Math.random() * 4 + 3),
                 vy: Math.sin(ang) * (Math.random() * 4 + 3),
-                color: '#00ff88',
-                size: Math.random() * 3 + 1,
+                color: '#10b981',
+                size: Math.random() * 3 + 1.5,
                 life: 1.0,
-                decay: 0.035,
+                decay: 0.04,
               });
             }
 
@@ -671,11 +739,10 @@ export default function App() {
           ctx.translate(ring.x, ring.y);
           ctx.rotate(ring.angle);
 
-          // Glowing polygonal ring
-          ctx.strokeStyle = '#00ff88';
-          ctx.shadowColor = '#00ff88';
-          ctx.shadowBlur = 12;
-          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#10b981';
+          ctx.shadowColor = '#10b981';
+          ctx.shadowBlur = 14;
+          ctx.lineWidth = 3;
           ctx.beginPath();
           for (let p = 0; p < 6; p++) {
             const rad = (p / 6) * Math.PI * 2;
@@ -687,15 +754,15 @@ export default function App() {
           ctx.closePath();
           ctx.stroke();
 
-          // Center pulsing core
-          ctx.fillStyle = '#ffffff';
+          // Center golden core
+          ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+          ctx.arc(0, 0, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         }
 
-        if (ring.x < -40 || ring.collected) {
+        if (ring.x < -50 || ring.collected) {
           g.rings.splice(i, 1);
         }
       }
@@ -705,7 +772,7 @@ export default function App() {
         const p = g.particles[i];
         p.x += p.vx * dt * 60;
         p.y += p.vy * dt * 60;
-        p.life -= p.decay * (g.timeScale < 0.5 ? 0.35 : 1.0);
+        p.life -= p.decay;
 
         if (p.life <= 0) {
           g.particles.splice(i, 1);
@@ -717,7 +784,6 @@ export default function App() {
         ctx.fillRect(p.x, p.y, p.size, p.size);
       }
 
-      // Shattered Glass / Polygon Fragments
       for (let i = g.fragments.length - 1; i >= 0; i--) {
         const frag = g.fragments[i];
         frag.x += frag.vx * dt * 60;
@@ -733,16 +799,9 @@ export default function App() {
         ctx.save();
         ctx.translate(frag.x, frag.y);
         ctx.rotate(frag.rotation);
-        ctx.strokeStyle = frag.color;
         ctx.fillStyle = frag.color;
         ctx.globalAlpha = frag.life;
-        ctx.beginPath();
-        ctx.moveTo(-frag.size, -frag.size / 2);
-        ctx.lineTo(frag.size, 0);
-        ctx.lineTo(0, frag.size);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(-frag.size / 2, -frag.size / 2, frag.size, frag.size);
         ctx.restore();
       }
       ctx.globalAlpha = 1.0;
@@ -750,7 +809,7 @@ export default function App() {
       // 7. RENDER DRONE (PLAYER)
       const d = g.drone;
 
-      // Afterburner glowing ribbon trail
+      // Glowing Ribbon Contrail
       if (d.trail.length > 1) {
         ctx.save();
         for (let t = 0; t < d.trail.length - 1; t++) {
@@ -758,9 +817,9 @@ export default function App() {
           const pt2 = d.trail[t + 1];
           const progress = 1 - t / d.trail.length;
 
-          ctx.strokeStyle = g.isOverclockActive ? '#ffaa00' : g.activeSkin.primary;
-          ctx.lineWidth = progress * 7 + (g.isOverclockActive ? 6 : 0);
-          ctx.globalAlpha = progress * 0.7;
+          ctx.strokeStyle = g.isOverclockActive ? '#f59e0b' : theme.droneAccent;
+          ctx.lineWidth = progress * 8 + (g.isOverclockActive ? 6 : 0);
+          ctx.globalAlpha = progress * 0.75;
           ctx.beginPath();
           ctx.moveTo(pt1.x, pt1.y);
           ctx.lineTo(pt2.x, pt2.y);
@@ -773,74 +832,76 @@ export default function App() {
       ctx.translate(d.x, d.y);
       ctx.rotate(d.angle);
 
-      // Overclock Radiance Shield
-      if (g.isOverclockActive) {
-        ctx.strokeStyle = '#ffaa00';
-        ctx.shadowColor = '#ff3366';
-        ctx.shadowBlur = 24;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, 32 + Math.sin(timestamp * 0.02) * 4, 0, Math.PI * 2);
-        ctx.stroke();
+      // Grace period flashing
+      if (g.graceTimer > 0 && Math.floor(timestamp / 100) % 2 === 0) {
+        ctx.globalAlpha = 0.5;
+      }
 
-        // Electric lightning sparks
-        for (let l = 0; l < 4; l++) {
-          const lAng = Math.random() * Math.PI * 2;
-          const lx = Math.cos(lAng) * 32;
-          const ly = Math.sin(lAng) * 32;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(lx - 2, ly - 2, 4, 4);
-        }
+      // Overclock Sun Forcefield
+      if (g.isOverclockActive) {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 24;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 36 + Math.sin(timestamp * 0.02) * 4, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.shadowBlur = 0;
       }
 
-      // Delta-Wing Stealth Fighter Body
-      ctx.fillStyle = '#0f1422';
-      ctx.strokeStyle = g.activeSkin.primary;
-      ctx.lineWidth = 2;
-      ctx.shadowColor = g.activeSkin.primary;
-      ctx.shadowBlur = 14;
+      // Sleek White & Chrome Delta Wing Chassis
+      const droneGrad = ctx.createLinearGradient(26, 0, -20, 0);
+      droneGrad.addColorStop(0, '#ffffff');
+      droneGrad.addColorStop(0.5, '#f1f5f9');
+      droneGrad.addColorStop(1, '#cbd5e1');
+      ctx.fillStyle = droneGrad;
+      ctx.strokeStyle = theme.droneAccent;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 8;
 
       ctx.beginPath();
-      ctx.moveTo(24, 0); // Nose tip
-      ctx.lineTo(-18, -14); // Left wingtip
-      ctx.lineTo(-10, -3); // Inner wing notch
-      ctx.lineTo(-20, 0); // Engine exhaust
-      ctx.lineTo(-10, 3);
-      ctx.lineTo(-18, 14); // Right wingtip
+      ctx.moveTo(26, 0); // Sharp nose
+      ctx.lineTo(-18, -15); // Top wingtip
+      ctx.lineTo(-10, -4); // Wing notch
+      ctx.lineTo(-22, 0); // Exhaust center
+      ctx.lineTo(-10, 4);
+      ctx.lineTo(-18, 15); // Bottom wingtip
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // Wing Edge Accent Stripes
-      ctx.strokeStyle = g.activeSkin.secondary;
-      ctx.lineWidth = 1.5;
+      // Wing Racing Accent Stripes
+      ctx.strokeStyle = theme.droneAccent;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(12, 0);
-      ctx.lineTo(-12, -9);
-      ctx.moveTo(12, 0);
-      ctx.lineTo(-12, 9);
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-12, -10);
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-12, 10);
       ctx.stroke();
 
-      // Glowing Cockpit Plasma Core
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = g.activeSkin.primary;
-      ctx.shadowBlur = 10;
+      // Luminous Glass Cockpit
+      const cockpitGrad = ctx.createLinearGradient(0, -4, 0, 4);
+      cockpitGrad.addColorStop(0, theme.droneAccent);
+      cockpitGrad.addColorStop(1, '#ffffff');
+      ctx.fillStyle = cockpitGrad;
       ctx.beginPath();
-      ctx.ellipse(2, 0, 7, 3.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(4, 0, 8, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Dual Twin Thruster Nozzles
-      ctx.fillStyle = g.isOverclockActive ? '#ffaa00' : g.activeSkin.primary;
-      ctx.fillRect(-22, -6, 5, 3);
-      ctx.fillRect(-22, 3, 5, 3);
+      // Dual Twin Afterburners
+      ctx.fillStyle = g.isOverclockActive ? '#f59e0b' : theme.droneFlame;
+      ctx.fillRect(-24, -6, 6, 3.5);
+      ctx.fillRect(-24, 2.5, 6, 3.5);
 
       ctx.restore();
+      ctx.globalAlpha = 1.0;
 
-      // 8. RENDER FLOATING SCORE LABELS
+      // 8. RENDER FLOATING SCORES
       for (let i = g.floatingTexts.length - 1; i >= 0; i--) {
         const ft = g.floatingTexts[i];
-        ft.y -= 1.2;
+        ft.y -= 1.4;
         ft.life -= ft.decay;
 
         if (ft.life <= 0) {
@@ -848,9 +909,9 @@ export default function App() {
           continue;
         }
 
-        ctx.font = 'bold 16px "Orbitron", sans-serif';
+        ctx.font = 'bold 17px "Orbitron", sans-serif';
         ctx.fillStyle = ft.color;
-        ctx.shadowColor = ft.color;
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
         ctx.shadowBlur = 8;
         ctx.globalAlpha = ft.life;
         ctx.fillText(ft.text, ft.x, ft.y);
@@ -859,27 +920,24 @@ export default function App() {
       ctx.shadowBlur = 0;
 
       ctx.restore();
-
-      animationFrameId = requestAnimationFrame(render);
     };
 
-    // Trigger Overclock Mode
     const activateOverclock = () => {
       const g = gameRef.current;
       g.isOverclockActive = true;
       setIsOverclockActive(true);
       g.overclockTimer = 4.5;
       g.overclockCount++;
-      g.cameraShake.intensity = 22;
+      g.cameraShake.intensity = 20;
       playSound('overclock');
-      addFloatingText('⚡ OVERCLOCK HYPERDRIVE!', g.drone.x + 30, g.drone.y - 40, '#ffaa00');
+      addFloatingText('⚡ OVERCLOCK HYPERDRIVE!', g.drone.x + 30, g.drone.y - 40, '#f59e0b');
     };
 
-    // Trigger Game Over Sequence
     const triggerGameOver = (reason) => {
       const g = gameRef.current;
+      if (g.state === 'GAMEOVER') return;
       g.state = 'GAMEOVER';
-      g.cameraShake.intensity = 25;
+      g.cameraShake.intensity = 24;
       playSound('crash');
 
       const finalScore = Math.floor(g.score);
@@ -901,11 +959,11 @@ export default function App() {
 
     animationFrameId = requestAnimationFrame(render);
 
-    // Global Keyboard Controls
+    // Keyboard controls
     const handleKeyDown = (e) => {
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
-        handleThrustStart();
+        handleFlap();
       } else if (e.code === 'KeyP') {
         togglePause();
       }
@@ -927,9 +985,9 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleThrustStart, handleThrustEnd, playSound, highScore]);
+  }, [handleFlap, handleThrustEnd, playSound, highScore]);
 
-  // Pause Toggle
+  // Pause Handler
   const togglePause = () => {
     if (gameState === 'PLAYING') {
       gameRef.current.state = 'PAUSED';
@@ -941,38 +999,38 @@ export default function App() {
     }
   };
 
-  // Rank Evaluator
+  // Rank Calculation
   const getRank = (sc) => {
-    if (sc >= 2000) return { label: 'S+ TITAN', color: '#ffaa00' };
-    if (sc >= 1200) return { label: 'S CYBER', color: '#00f3ff' };
-    if (sc >= 700) return { label: 'A ACE', color: '#00ff88' };
-    if (sc >= 300) return { label: 'B PILOT', color: '#b026ff' };
-    return { label: 'C RECRUIT', color: '#94a3b8' };
+    if (sc >= 2000) return { label: 'S+ GRAND TITAN', color: '#f59e0b' };
+    if (sc >= 1200) return { label: 'S AERO ACE', color: '#0284c7' };
+    if (sc >= 700) return { label: 'A SKY PILOT', color: '#10b981' };
+    if (sc >= 300) return { label: 'B CADET', color: '#a855f7' };
+    return { label: 'C ROOKIE', color: '#64748b' };
   };
 
   return (
     <div
       className="chronoflap-container"
-      onMouseDown={handleThrustStart}
+      onMouseDown={handleFlap}
       onMouseUp={handleThrustEnd}
       onTouchStart={(e) => {
         e.preventDefault();
-        handleThrustStart();
+        handleFlap();
       }}
       onTouchEnd={(e) => {
         e.preventDefault();
         handleThrustEnd();
       }}
     >
-      {/* 60 FPS Canvas */}
+      {/* 60-120 FPS High-DPI Canvas */}
       <canvas ref={canvasRef} className="game-canvas" />
 
-      {/* Retro CRT Scanlines & Shaders */}
-      <div className="crt-overlay" />
+      {/* Subtle Light Scanlines */}
+      <div className="subtle-scanlines" />
 
-      {/* Dynamic Time-Dilation Vignette */}
+      {/* Dynamic Light Vignette */}
       <div
-        className={`vignette-overlay ${
+        className={`light-vignette ${
           chronoMode === 'SLOWMO'
             ? 'vignette-slowmo'
             : chronoMode === 'OVERCLOCK'
@@ -981,19 +1039,21 @@ export default function App() {
         }`}
       />
 
-      {/* HUD Header Bar */}
+      {/* High-Brightness HUD Header */}
       <div className="hud-layer">
         <div className="hud-top">
           {/* Left: Score & Chrono Mode Indicator */}
           <div className="hud-chip hud-chip-left">
             <div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', letterSpacing: '1px' }}>ALTITUDE RUN</div>
-              <div className="hud-title-font" style={{ fontSize: '26px', color: '#ffffff' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, letterSpacing: '1px' }}>
+                SCORE
+              </div>
+              <div className="hud-title-font" style={{ fontSize: '26px', color: '#0284c7' }}>
                 {score}
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)' }} />
+            <div style={{ width: '1px', height: '28px', background: '#cbd5e1' }} />
 
             {/* Time Dilation Badge */}
             <div
@@ -1003,33 +1063,37 @@ export default function App() {
             >
               <Activity size={12} />
               {chronoMode === 'SLOWMO'
-                ? 'BULLET-TIME (0.2x)'
+                ? 'BULLET-TIME'
                 : chronoMode === 'OVERCLOCK'
-                ? 'OVERCLOCK (2.4x)'
+                ? '⚡ OVERCLOCK'
                 : '1.0x NORMAL'}
             </div>
           </div>
 
           {/* Center: Overclock Energy Meter */}
-          <div className="hud-chip" style={{ gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ffaa00' }}>
-              <Zap size={14} />
-              <span style={{ fontWeight: 700 }}>OVERCLOCK</span>
+          <div className="hud-chip" style={{ gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#f59e0b' }}>
+              <Zap size={15} />
+              <span style={{ fontWeight: 800 }}>ENERGY</span>
             </div>
             <div className="overclock-meter">
               <div className="overclock-fill" style={{ width: `${overclock}%` }} />
             </div>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', minWidth: '32px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', minWidth: '32px' }}>
               {Math.floor(overclock)}%
             </span>
           </div>
 
           {/* Right: Best Record & Audio Controls */}
-          <div className="hud-chip hud-chip-right" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="hud-chip hud-chip-right"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '6px' }}>
-              <Trophy size={16} color="#ffaa00" />
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                RECORD <span style={{ color: '#ffffff', fontWeight: 700, marginLeft: '4px' }}>{highScore}</span>
+              <Trophy size={16} color="#f59e0b" />
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
+                RECORD <span style={{ color: '#0f172a', fontWeight: 800, marginLeft: '4px' }}>{highScore}</span>
               </div>
             </div>
 
@@ -1044,7 +1108,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* START TITLE MODAL */}
+      {/* START TITLE SCREEN */}
       {gameState === 'START' && (
         <div
           style={{
@@ -1054,96 +1118,94 @@ export default function App() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 20,
-            background: 'rgba(5, 7, 15, 0.72)',
+            background: 'rgba(2, 44, 94, 0.45)',
+            backdropFilter: 'blur(8px)',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
           <div className="cyber-card">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-              <span className="badge-chrono normal">CYBERPUNK FLIGHT SYSTEM</span>
+              <span className="badge-chrono normal">AERO LIGHT EDITION</span>
             </div>
 
             <h1
               className="hud-title-font"
               style={{
-                fontSize: '38px',
-                margin: '8px 0 4px',
-                background: 'linear-gradient(135deg, #00f3ff, #ff0055)',
+                fontSize: '36px',
+                margin: '6px 0 4px',
+                background: 'linear-gradient(135deg, #0284c7, #2563eb)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                letterSpacing: '3px',
+                letterSpacing: '2px',
               }}
             >
               CHRONOFLAP 2099
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: '0 0 20px', letterSpacing: '0.5px' }}>
-              Bend time to dodge kinetic laser gates. Charge your reactor and trigger supersonic Overclock.
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 20px', fontWeight: 600 }}>
+              Tap or Space to flap. Release to glide in tactical Bullet-Time.
             </p>
 
-            {/* Drone Skin Selector */}
-            <div style={{ marginBottom: '24px', textAlign: 'left' }}>
-              <div style={{ fontSize: '11px', color: '#94a3b8', letterSpacing: '1px', marginBottom: '8px' }}>
-                SELECT INTERCEPTOR CHASSIS
+            {/* Bright Theme Selector */}
+            <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px' }}>
+                SELECT ILLUMINATED THEME
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {SKINS.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedSkin(s)}
-                    style={{
-                      background: selectedSkin.id === s.id ? 'rgba(0, 243, 255, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-                      border: `1px solid ${selectedSkin.id === s.id ? s.primary : 'rgba(255, 255, 255, 0.12)'}`,
-                      borderRadius: '8px',
-                      padding: '10px 6px',
-                      color: selectedSkin.id === s.id ? '#ffffff' : '#94a3b8',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      fontFamily: 'Orbitron',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div
+                {THEMES.map((th) => {
+                  const Icon = th.icon;
+                  const isSelected = selectedTheme.id === th.id;
+                  return (
+                    <button
+                      key={th.id}
+                      onClick={() => setSelectedTheme(th)}
                       style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        background: s.primary,
-                        boxShadow: `0 0 8px ${s.primary}`,
+                        background: isSelected ? '#e0f2fe' : '#f8fafc',
+                        border: `2px solid ${isSelected ? '#0284c7' : '#e2e8f0'}`,
+                        borderRadius: '10px',
+                        padding: '10px 6px',
+                        color: isSelected ? '#0369a1' : '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        fontFamily: 'Orbitron',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
                       }}
-                    />
-                    {s.name}
-                  </button>
-                ))}
+                    >
+                      <Icon size={16} color={isSelected ? '#0284c7' : '#94a3b8'} />
+                      {th.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* How to Play Guide */}
+            {/* Quick Controls Card */}
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '8px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
                 padding: '12px 16px',
-                marginBottom: '24px',
+                marginBottom: '22px',
                 fontSize: '13px',
-                color: '#cbd5e1',
+                color: '#334155',
                 lineHeight: 1.6,
                 textAlign: 'left',
-                borderLeft: '2px solid #00f3ff',
               }}
             >
-              <div>• <strong>HOLD / TAP:</strong> Upward impulse thrust at full 1.0x velocity.</div>
-              <div>• <strong>RELEASE:</strong> Engage <strong>0.2x Bullet-Time Slow-Mo</strong> to steer through tight laser beams.</div>
-              <div>• <strong>100% ENERGY:</strong> Activates <strong>Overclock Hyperdrive</strong> — invincible speed burst!</div>
+              <div>• <strong>CLICK / SPACE / TAP:</strong> Crisp upward impulse flap.</div>
+              <div>• <strong>TACTICAL GLIDE:</strong> Release to slow down and thread laser gates.</div>
+              <div>• <strong>100% ENERGY:</strong> Invincible <strong>Overclock Hyperdrive</strong> speed burst!</div>
             </div>
 
-            {/* Launch CTA Button */}
+            {/* Launch Button */}
             <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
-              <Play size={18} /> LAUNCH INTERCEPTOR [SPACE]
+              <Play size={18} /> LAUNCH FLIGHT [SPACE]
             </button>
           </div>
         </div>
@@ -1159,97 +1221,99 @@ export default function App() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 20,
-            background: 'rgba(5, 7, 15, 0.78)',
+            background: 'rgba(2, 44, 94, 0.55)',
+            backdropFilter: 'blur(10px)',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
           <div className="cyber-card">
             <span
               className="badge-chrono"
               style={{
-                background: 'rgba(255, 0, 85, 0.2)',
-                color: '#ff0055',
-                borderColor: '#ff0055',
+                background: '#fee2e2',
+                color: '#dc2626',
+                border: '1px solid #fca5a5',
                 marginBottom: '10px',
               }}
             >
               FLIGHT TERMINATED
             </span>
 
-            <h2 className="hud-title-font" style={{ fontSize: '32px', margin: '4px 0 16px', color: '#ffffff' }}>
+            <h2 className="hud-title-font" style={{ fontSize: '30px', margin: '4px 0 16px', color: '#0f172a' }}>
               MISSION REPORT
             </h2>
 
-            {/* Score & Rank Display */}
+            {/* Score & Rank */}
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '10px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
                 padding: '16px',
-                marginBottom: '20px',
+                marginBottom: '18px',
                 display: 'flex',
                 justifyContent: 'space-around',
                 alignItems: 'center',
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>FINAL SCORE</div>
-                <div className="hud-title-font" style={{ fontSize: '36px', color: '#00f3ff' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>FINAL SCORE</div>
+                <div className="hud-title-font" style={{ fontSize: '36px', color: '#0284c7' }}>
                   {score}
                 </div>
               </div>
 
-              <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ width: '1px', height: '40px', background: '#cbd5e1' }} />
 
               <div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>PILOT RANK</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>RANK</div>
                 <div
                   className="hud-title-font"
-                  style={{ fontSize: '20px', color: getRank(score).color, fontWeight: 900 }}
+                  style={{ fontSize: '18px', color: getRank(score).color, fontWeight: 900 }}
                 >
                   {getRank(score).label}
                 </div>
               </div>
             </div>
 
-            {/* Detailed Mission Stats */}
+            {/* Flight Metrics */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '10px',
-                marginBottom: '24px',
+                gap: '8px',
+                marginBottom: '20px',
                 textAlign: 'left',
               }}
             >
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>DISTANCE FLOWN</span>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>{stats.distance} m</div>
+              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>DISTANCE</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{stats.distance} m</div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>CLOSE CALLS</span>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#00f3ff' }}>{stats.closeCalls}</div>
+              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>CLOSE CALLS</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0284c7' }}>{stats.closeCalls}</div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>ENERGY RINGS</span>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#00ff88' }}>{stats.rings}</div>
+              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>ENERGY RINGS</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#10b981' }}>{stats.rings}</div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>OVERCLOCK BURSTS</span>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffaa00' }}>{stats.overclocks}</div>
+              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>OVERCLOCK BURSTS</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f59e0b' }}>{stats.overclocks}</div>
               </div>
             </div>
 
-            {/* Retry Button */}
+            {/* Reboot CTA */}
             <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
-              <RotateCcw size={18} /> REBOOT INTERCEPTOR [SPACE]
+              <RotateCcw size={18} /> REBOOT FLIGHT [SPACE]
             </button>
           </div>
         </div>
       )}
 
-      {/* PAUSE MODAL */}
+      {/* PAUSE SCREEN */}
       {gameState === 'PAUSED' && (
         <div
           style={{
@@ -1259,19 +1323,21 @@ export default function App() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 20,
-            background: 'rgba(5, 7, 15, 0.75)',
+            background: 'rgba(2, 44, 94, 0.45)',
+            backdropFilter: 'blur(8px)',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
           <div className="cyber-card" style={{ maxWidth: '340px' }}>
-            <h2 className="hud-title-font" style={{ fontSize: '26px', margin: '0 0 16px', color: '#00f3ff' }}>
+            <h2 className="hud-title-font" style={{ fontSize: '24px', margin: '0 0 16px', color: '#0284c7' }}>
               SIMULATION PAUSED
             </h2>
-            <button className="cyber-btn" onClick={togglePause} style={{ width: '100%', marginBottom: '12px' }}>
+            <button className="cyber-btn" onClick={togglePause} style={{ width: '100%', marginBottom: '10px' }}>
               RESUME [P]
             </button>
             <button className="cyber-btn cyber-btn-secondary" onClick={startGame} style={{ width: '100%' }}>
-              RESTART RUN
+              RESTART
             </button>
           </div>
         </div>

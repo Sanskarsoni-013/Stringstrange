@@ -1,14 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700;800&display=swap');
 
 :root {
   --neon-cyan: #00f3ff;
-  --neon-pink: #ff0055;
-  --neon-amber: #ffaa00;
-  --neon-purple: #b026ff;
-  --neon-green: #00ff88;
-  --cyber-bg: #070913;
-  --surface-panel: rgba(13, 17, 30, 0.78);
-  --surface-border: rgba(0, 243, 255, 0.28);
+  --neon-blue: #0284c7;
+  --neon-gold: #f59e0b;
+  --neon-rose: #f43f5e;
+  --neon-emerald: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #0b1329;
 }
 
 .chronoflap-container {
@@ -16,25 +30,23 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--cyber-bg);
-  user-select: none;
-  font-family: 'Rajdhani', sans-serif;
-  color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Canvas viewport */
+/* Canvas Viewport */
 .game-canvas {
-  display: block;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
+  display: block;
 }
 
-/* CRT Scanline Overlay */
-.crt-overlay {
+/* Light Ambient Glow & Vignette */
+.light-vignette {
   position: absolute;
   top: 0;
   left: 0;
@@ -42,21 +54,20 @@
   height: 100%;
   pointer-events: none;
   z-index: 5;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.25) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.03),
-    rgba(0, 255, 0, 0.01),
-    rgba(0, 0, 255, 0.03)
-  );
-  background-size: 100% 3px, 6px 100%;
-  opacity: 0.6;
+  background: radial-gradient(circle at 50% 30%, transparent 55%, rgba(10, 25, 47, 0.45) 100%);
+  transition: box-shadow 0.25s ease;
 }
 
-/* Radial Vignette */
-.vignette-overlay {
+.vignette-slowmo {
+  box-shadow: inset 0 0 120px rgba(0, 243, 255, 0.45);
+}
+
+.vignette-overclock {
+  box-shadow: inset 0 0 140px rgba(245, 158, 11, 0.6);
+}
+
+/* Clean Scanline Texture */
+.subtle-scanlines {
   position: absolute;
   top: 0;
   left: 0;
@@ -64,33 +75,15 @@
   height: 100%;
   pointer-events: none;
   z-index: 6;
-  background: radial-gradient(circle at center, transparent 40%, rgba(5, 7, 15, 0.75) 100%);
-  transition: box-shadow 0.2s ease;
+  background: linear-gradient(
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.08) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0.5;
 }
 
-/* Time Dilation Slow-Mo Vignette Pulse */
-.vignette-slowmo {
-  box-shadow: inset 0 0 100px rgba(0, 243, 255, 0.35);
-  animation: slowmoPulse 1.2s infinite alternate ease-in-out;
-}
-
-/* Overclock Vignette Burst */
-.vignette-overclock {
-  box-shadow: inset 0 0 140px rgba(255, 170, 0, 0.55);
-  animation: overclockPulse 0.4s infinite alternate ease-in-out;
-}
-
-@keyframes slowmoPulse {
-  0% { box-shadow: inset 0 0 70px rgba(0, 243, 255, 0.25); }
-  100% { box-shadow: inset 0 0 120px rgba(0, 243, 255, 0.5); }
-}
-
-@keyframes overclockPulse {
-  0% { box-shadow: inset 0 0 90px rgba(255, 0, 85, 0.4); }
-  100% { box-shadow: inset 0 0 150px rgba(255, 170, 0, 0.7); }
-}
-
-/* Futuristic HUD Bar */
+/* Bright Glassmorphism HUD */
 .hud-layer {
   position: absolute;
   top: 0;
@@ -99,7 +92,7 @@
   height: 100%;
   pointer-events: none;
   z-index: 10;
-  padding: 18px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -108,28 +101,29 @@
 .hud-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
 }
 
 .hud-chip {
-  background: var(--surface-panel);
-  border: 1px solid var(--surface-border);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 32px rgba(2, 44, 94, 0.22), 0 0 16px rgba(0, 243, 255, 0.35);
+  backdrop-filter: blur(16px);
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  color: #0f172a;
 }
 
 .hud-chip-left {
-  border-left: 3px solid var(--neon-cyan);
+  border-left: 4px solid #0284c7;
 }
 
 .hud-chip-right {
-  border-right: 3px solid var(--neon-pink);
+  border-right: 4px solid #f59e0b;
   pointer-events: auto;
 }
 
@@ -139,93 +133,110 @@
   letter-spacing: 1.5px;
 }
 
-/* Time dilation indicator badge */
+/* Chrono Time Dilation Badge */
 .badge-chrono {
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: 'Orbitron', monospace;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 1px;
-  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .badge-chrono.normal {
-  background: rgba(0, 243, 255, 0.15);
-  color: var(--neon-cyan);
-  border: 1px solid var(--neon-cyan);
-  box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
 }
 
 .badge-chrono.slowmo {
-  background: rgba(176, 38, 255, 0.25);
-  color: #df80ff;
-  border: 1px solid #df80ff;
-  box-shadow: 0 0 16px rgba(176, 38, 255, 0.5);
-  animation: badgePulse 0.8s infinite alternate ease-in-out;
+  background: #fdf4ff;
+  color: #a21caf;
+  border: 1px solid #f0abfc;
+  animation: pulseSlowmo 1s infinite alternate;
 }
 
 .badge-chrono.overclock {
-  background: rgba(255, 170, 0, 0.28);
-  color: var(--neon-amber);
-  border: 1px solid var(--neon-amber);
-  box-shadow: 0 0 20px rgba(255, 170, 0, 0.65);
-  animation: badgeJitter 0.2s infinite linear;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+  animation: jitterOverclock 0.2s infinite;
 }
 
-@keyframes badgePulse {
+@keyframes pulseSlowmo {
   0% { transform: scale(1); }
-  100% { transform: scale(1.05); }
+  100% { transform: scale(1.04); }
 }
 
-@keyframes badgeJitter {
+@keyframes jitterOverclock {
   0% { transform: translate(0, 0); }
   50% { transform: translate(1px, -1px); }
   100% { transform: translate(-1px, 1px); }
 }
 
-/* Interactive overlay cards */
+/* Overclock Energy Meter */
+.overclock-meter {
+  position: relative;
+  width: 130px;
+  height: 12px;
+  background: rgba(15, 23, 42, 0.15);
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.overclock-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #f59e0b, #ef4444);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+  transition: width 0.15s ease-out;
+}
+
+/* Interactive Card Modals */
 .cyber-card {
-  background: rgba(11, 15, 28, 0.88);
-  border: 1px solid rgba(0, 243, 255, 0.35);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 32px rgba(0, 243, 255, 0.2);
-  backdrop-filter: blur(20px);
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 2px solid rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 64px rgba(2, 44, 94, 0.28), 0 0 32px rgba(0, 243, 255, 0.35);
+  backdrop-filter: blur(24px);
+  border-radius: 20px;
   padding: 32px;
-  max-width: 480px;
+  max-width: 500px;
   width: 90%;
   pointer-events: auto;
   text-align: center;
+  color: #0f172a;
 }
 
+/* Premium Action Buttons */
 .cyber-btn {
-  background: linear-gradient(135deg, #00f3ff, #0077ff);
-  color: #030814;
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
   font-family: 'Orbitron', monospace;
-  font-weight: 900;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 15px;
   letter-spacing: 2px;
   border: none;
   padding: 14px 28px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 0 24px rgba(0, 243, 255, 0.5);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-transform: uppercase;
 }
 
 .cyber-btn:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 0 36px rgba(0, 243, 255, 0.8);
-  background: linear-gradient(135deg, #4df8ff, #1a8cff);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.65);
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
 }
 
 .cyber-btn:active {
@@ -233,44 +244,26 @@
 }
 
 .cyber-btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #e2e8f0;
-  box-shadow: none;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .cyber-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(0, 243, 255, 0.5);
-  color: #00f3ff;
-  box-shadow: 0 0 18px rgba(0, 243, 255, 0.3);
-}
-
-/* Energy Overclock Bar */
-.overclock-meter {
-  position: relative;
-  width: 140px;
-  height: 12px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.overclock-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #00f3ff, #ffaa00, #ff0055);
-  box-shadow: 0 0 14px rgba(255, 170, 0, 0.7);
-  transition: width 0.15s ease-out;
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Glass icon button */
 .icon-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
   padding: 8px;
-  color: #94a3b8;
+  color: #475569;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -279,7 +272,7 @@
 }
 
 .icon-btn:hover {
-  background: rgba(0, 243, 255, 0.15);
-  border-color: var(--neon-cyan);
-  color: var(--neon-cyan);
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
 }
