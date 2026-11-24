@@ -1,39 +1,42 @@
-# SkyFlap Airborne 🪶
+# ChronoFlap 2099 ⚡🚀
 
-[![Live Game](https://img.shields.io/badge/Play%20Online-stringstrange.online-amber.svg)](https://www.stringstrange.online)
-[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000.svg)](https://stringstrange.vercel.app)
+[![Live Game](https://img.shields.io/badge/Play%20Online-stringstrange.online-00f3ff.svg)](https://www.stringstrange.online)
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live-000000.svg)](https://stringstrange.vercel.app)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
-[![Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API-success.svg)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Engine](https://img.shields.io/badge/Engine-HTML5%20Canvas%20120FPS-ff0055.svg)](#)
+[![Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API%20Synth-ffaa00.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**SkyFlap Airborne** is an ultra-smooth, responsive 60 FPS endless arcade flight game built with modern React, HTML5 Canvas, and real-time synthesized 8-bit sound effects.
+**ChronoFlap 2099** is a high-speed, bullet-time cyberpunk arcade flight runner. Bend time, dodge kinetic laser pylons, absorb energy rings, trigger supersonic Overclock hyperdrive, and climb the pilot leaderboards.
 
 🎮 **Play Live Now:** [https://www.stringstrange.online](https://www.stringstrange.online)  
 ⚡ **Mirror:** [https://stringstrange.vercel.app](https://stringstrange.vercel.app)
 
 ---
 
-## 🌟 Game Highlights
+## 🌟 Game Highlights & Innovations
 
-- **Crisp 60 FPS Canvas Physics**: Precise collision detection, upward flap impulse, downward velocity gravity curves, and pitch-angle rotation interpolation.
-- **Synthesized 8-Bit Web Audio Engine**: Zero external sound file lag. Real-time oscillators synthesize retro flap swooshes, coin chimes, collision thuds, and death sequences directly in the browser.
-- **Multiple Environments (Themes)**:
-  - ☀️ **Daylight Classic**: Vibrant blue skies, procedural clouds, and lush hills.
-  - 🌙 **Midnight Cyber**: Dark neon grid with glowing pipes.
-  - 🌅 **Sunset Synth**: Retro synthwave violet & orange gradients.
-- **Character Skins**:
-  - 🟡 **Classic Goldie**: The iconic round yellow flapper.
-  - 🔵 **Cyber Blue**: High-tech aerial drone with electric thrusters.
-  - 🔴 **Fire Phoenix**: Blazing plumage with sparkling feather particles.
-- **Medal Rewards & High Score Persistence**:
-  - 🥉 Bronze Medal (10+ Score)
-  - 🥈 Silver Medal (20+ Score)
-  - 🥇 Gold Medal (30+ Score)
-  - 💎 Platinum Medal (40+ Score)
-  - LocalStorage high-score tracking.
-- **Full Cross-Platform Support**:
-  - Desktop: `Spacebar`, `Up Arrow`, or Left Mouse Click.
-  - Mobile & Tablet: Screen touch tap with zero pinch/zoom interference.
+- **Chrono Time Dilation (Bullet-Time)**:
+  - **Press & Hold**: Fire impulse afterburners at full 1.0x velocity.
+  - **Release**: Time bends smoothly down to **0.2x slow-motion**, granting the pilot tactical precision to navigate millimeter-tight laser beam gaps.
+- **Overclock Hyperdrive (100% Reactor)**:
+  - Grazing laser beams (*Close Calls*) and collecting hexagonal energy rings charges your reactor core.
+  - At 100%, **OVERCLOCK HYPERDRIVE** activates for 4.5 seconds: time accelerates to 2.4x speed, your interceptor gains invulnerability, and blasts through laser gates, shattering them into hundreds of explosive polygon shards!
+- **Procedural 8-Bit Web Audio Synthesizer**:
+  - Zero external sound files — 100% synthesized in the browser with the Web Audio API.
+  - Deep 808 sub kicks on thrust, resonant low-pass filter sweeps when entering bullet-time, harmonic arpeggio chimes on ring collection, electric laser chirps, and cinematic explosion rumbles.
+- **Selectable Interceptor Chassis (Skins)**:
+  - 💠 **Apex Cyan**: Electric cyan plasma with cobalt wing accents.
+  - 🔥 **Solar Crimson**: Blazing crimson hull with molten amber afterburner.
+  - 🔮 **Void Phantom**: Deep ultraviolet chassis with toxic emerald highlights.
+- **Juice & Visual Polish**:
+  - Parallax cyberpunk skyline with illuminated megastructures and rooftop beacon towers.
+  - 3D perspective floor and ceiling hazard grid.
+  - Dynamic camera shake, ribbon afterburner particle trail, CRT scanlines, and radial slow-motion vignette pulse.
+- **Comprehensive Cross-Platform Controls**:
+  - **Desktop**: `Spacebar`, `Up Arrow`, `W`, or Left Mouse Click.
+  - **Mobile & Tablet**: One-finger touch anywhere on the screen with full native gesture prevention.
+  - **Keyboard Shortcuts**: `[P]` to Pause/Resume.
 
 ---
 
@@ -47,10 +50,10 @@ cd Stringstrange
 # Install dependencies
 npm install
 
-# Run locally
+# Start local development server
 npm start
 
-# Build for production
+# Build production bundle
 npm run build
 ```
 

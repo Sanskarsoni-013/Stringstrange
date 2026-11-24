@@ -1,14 +1,13 @@
 {
   "files": {
-    "main.css": "/static/css/main.1d4dd3ef.css",
-    "main.js": "/static/js/main.79a48d02.js",
-    "static/media/Jersey10.woff2": "/static/media/Jersey10.79f5ab27568d6a8fe457.woff2",
+    "main.css": "/static/css/main.d3febbdd.css",
+    "main.js": "/static/js/main.af21a7a9.js",
     "index.html": "/index.html",
-    "main.1d4dd3ef.css.map": "/static/css/main.1d4dd3ef.css.map",
-    "main.79a48d02.js.map": "/static/js/main.79a48d02.js.map"
+    "main.d3febbdd.css.map": "/static/css/main.d3febbdd.css.map",
+    "main.af21a7a9.js.map": "/static/js/main.af21a7a9.js.map"
   },
   "entrypoints": [
-    "static/css/main.1d4dd3ef.css",
-    "static/js/main.79a48d02.js"
+    "static/css/main.d3febbdd.css",
+    "static/js/main.af21a7a9.js"
   ]
 }
