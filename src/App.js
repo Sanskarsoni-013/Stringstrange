@@ -19,7 +19,8 @@ import {
   Clock,
   Flame,
   User,
-  X
+  X,
+  Edit3
 } from 'lucide-react';
 
 // Bright, well-lit themes
@@ -108,12 +109,18 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [stats, setStats] = useState({ distance: 0, closeCalls: 0, rings: 0, overclocks: 0 });
 
-  // Leaderboard & Prize System States
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  // Pilot Profile & Auto-Registration Onboarding
   const [pilotName, setPilotName] = useState(() => localStorage.getItem('chronoflap_pilot_name') || '');
   const [walletAddress, setWalletAddress] = useState(() => localStorage.getItem('chronoflap_pilot_wallet') || '');
+  const [isNameModalOpen, setIsNameModalOpen] = useState(() => !localStorage.getItem('chronoflap_pilot_name'));
+  const [tempName, setTempName] = useState(() => localStorage.getItem('chronoflap_pilot_name') || '');
+  const [tempWallet, setTempWallet] = useState(() => localStorage.getItem('chronoflap_pilot_wallet') || '');
+
+  // Leaderboard Modal State
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [moodIndex, setMoodIndex] = useState(0);
+  const [userRank, setUserRank] = useState(null);
   const [leaderboardData, setLeaderboardData] = useState(() => {
     const saved = localStorage.getItem('chronoflap_leaderboard_custom');
     if (saved) {
@@ -279,12 +286,58 @@ export default function App() {
     gameRef.current.isMuted = isMuted;
   }, [isMuted]);
 
+  // Automated Leaderboard Synchronization Helper
+  const syncLeaderboardWithScore = useCallback((name, wallet, newScore) => {
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const cleanWallet = wallet ? wallet.trim() : '';
+
+    const maskedWallet = cleanWallet
+      ? cleanWallet.length > 10
+        ? `${cleanWallet.slice(0, 5)}...${cleanWallet.slice(-4)}`
+        : cleanWallet
+      : '0x...ACTIVE';
+
+    setLeaderboardData((prevData) => {
+      const existingFiltered = prevData.filter((item) => !item.isUser);
+      const prevUser = prevData.find((item) => item.isUser);
+      const bestScore = Math.max(newScore, prevUser ? prevUser.score : 0);
+
+      const userEntry = {
+        name: cleanName,
+        score: bestScore,
+        wallet: maskedWallet,
+        isUser: true,
+      };
+
+      const combined = [...existingFiltered, userEntry].sort((a, b) => b.score - a.score);
+      const updated = combined.slice(0, 10).map((item, idx) => ({
+        ...item,
+        rank: idx + 1,
+        isWinner: idx === 0,
+      }));
+
+      const myRank = updated.find((it) => it.isUser)?.rank || null;
+      setUserRank(myRank);
+
+      localStorage.setItem('chronoflap_leaderboard_custom', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  // Auto-register user on mount if name already exists
+  useEffect(() => {
+    if (pilotName) {
+      syncLeaderboardWithScore(pilotName, walletAddress, highScore);
+    }
+  }, [pilotName, walletAddress, highScore, syncLeaderboardWithScore]);
+
   // Crisp Flap & Thrust Logic
   const handleFlap = useCallback(() => {
     initAudio();
     const g = gameRef.current;
 
-    if (isLeaderboardOpen) return;
+    if (isLeaderboardOpen || isNameModalOpen) return;
 
     if (g.state === 'START' || g.state === 'GAMEOVER') {
       startGame();
@@ -309,7 +362,7 @@ export default function App() {
         decay: Math.random() * 0.05 + 0.03,
       });
     }
-  }, [initAudio, playSound, isLeaderboardOpen]);
+  }, [initAudio, playSound, isLeaderboardOpen, isNameModalOpen]);
 
   const handleThrustEnd = useCallback(() => {
     gameRef.current.isThrusting = false;
@@ -319,6 +372,7 @@ export default function App() {
   const startGame = useCallback(() => {
     initAudio();
     setIsLeaderboardOpen(false);
+    setIsNameModalOpen(false);
     const logicalHeight = window.innerHeight;
 
     gameRef.current = {
@@ -960,6 +1014,7 @@ export default function App() {
       setGameState('GAMEOVER');
       setScore(finalScore);
 
+      const newBest = Math.max(finalScore, highScore);
       if (finalScore > highScore) {
         setHighScore(finalScore);
         localStorage.setItem('chronoflap_highscore', finalScore.toString());
@@ -971,12 +1026,19 @@ export default function App() {
         rings: g.ringsCollected,
         overclocks: g.overclockCount,
       });
+
+      // AUTOMATICALLY store and sync latest score into the $1,000 USDT Leaderboard!
+      const currentSavedName = localStorage.getItem('chronoflap_pilot_name');
+      const currentSavedWallet = localStorage.getItem('chronoflap_pilot_wallet') || '';
+      if (currentSavedName) {
+        syncLeaderboardWithScore(currentSavedName, currentSavedWallet, newBest);
+      }
     };
 
     animationFrameId = requestAnimationFrame(render);
 
     const handleKeyDown = (e) => {
-      if (isLeaderboardOpen) return;
+      if (isLeaderboardOpen || isNameModalOpen) return;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         handleFlap();
@@ -986,7 +1048,7 @@ export default function App() {
     };
 
     const handleKeyUp = (e) => {
-      if (isLeaderboardOpen) return;
+      if (isLeaderboardOpen || isNameModalOpen) return;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         handleThrustEnd();
@@ -1002,7 +1064,7 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleFlap, handleThrustEnd, playSound, highScore, isLeaderboardOpen]);
+  }, [handleFlap, handleThrustEnd, playSound, highScore, isLeaderboardOpen, isNameModalOpen, syncLeaderboardWithScore]);
 
   // Pause Handler
   const togglePause = () => {
@@ -1025,45 +1087,40 @@ export default function App() {
     return { label: 'C ROOKIE', color: '#64748b' };
   };
 
-  // Leaderboard Score Submission Handler
-  const handleScoreSubmit = (e) => {
+  // Initial Onboarding Registration Submit
+  const handleNameModalSubmit = (e) => {
     e.preventDefault();
-    if (!pilotName.trim()) return;
+    if (!tempName.trim()) return;
 
-    localStorage.setItem('chronoflap_pilot_name', pilotName.trim());
-    if (walletAddress.trim()) {
-      localStorage.setItem('chronoflap_pilot_wallet', walletAddress.trim());
-    }
+    const trimmedName = tempName.trim();
+    const trimmedWallet = tempWallet.trim();
 
-    const currentScore = Math.max(score, highScore);
-    const maskedWallet = walletAddress.trim()
-      ? walletAddress.trim().length > 10
-        ? `${walletAddress.trim().slice(0, 5)}...${walletAddress.trim().slice(-4)}`
-        : walletAddress.trim()
-      : '0x...UNSET';
+    setPilotName(trimmedName);
+    setWalletAddress(trimmedWallet);
+    localStorage.setItem('chronoflap_pilot_name', trimmedName);
+    localStorage.setItem('chronoflap_pilot_wallet', trimmedWallet);
 
-    // Insert user into leaderboard
-    const newEntry = {
-      name: pilotName.trim(),
-      score: currentScore,
-      wallet: maskedWallet,
-      isUser: true,
-    };
+    // Automatically store into leaderboard immediately!
+    syncLeaderboardWithScore(trimmedName, trimmedWallet, highScore);
+    setIsNameModalOpen(false);
+  };
 
-    const existingFiltered = leaderboardData.filter((item) => !item.isUser);
-    const combined = [...existingFiltered, newEntry].sort((a, b) => b.score - a.score);
+  // In-Modal Profile Update
+  const handleProfileUpdate = (e) => {
+    e.preventDefault();
+    if (!tempName.trim()) return;
 
-    // Re-rank
-    const updated = combined.slice(0, 10).map((item, idx) => ({
-      ...item,
-      rank: idx + 1,
-      isWinner: idx === 0,
-    }));
+    const trimmedName = tempName.trim();
+    const trimmedWallet = tempWallet.trim();
 
-    setLeaderboardData(updated);
-    localStorage.setItem('chronoflap_leaderboard_custom', JSON.stringify(updated));
+    setPilotName(trimmedName);
+    setWalletAddress(trimmedWallet);
+    localStorage.setItem('chronoflap_pilot_name', trimmedName);
+    localStorage.setItem('chronoflap_pilot_wallet', trimmedWallet);
+
+    syncLeaderboardWithScore(trimmedName, trimmedWallet, Math.max(score, highScore));
     setSubmitSuccess(true);
-    setTimeout(() => setSubmitSuccess(false), 4000);
+    setTimeout(() => setSubmitSuccess(false), 3500);
   };
 
   return (
@@ -1128,6 +1185,38 @@ export default function App() {
             </div>
           </div>
 
+          {/* Center-Left: Registered Pilot Call Sign Pill */}
+          <div
+            className="hud-chip"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ gap: '6px' }}
+          >
+            <User size={14} color="#0284c7" />
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+              PILOT: <span style={{ color: '#0284c7' }}>{pilotName || 'Recruit'}</span>
+            </div>
+            <button
+              onClick={() => {
+                setTempName(pilotName);
+                setTempWallet(walletAddress);
+                setIsNameModalOpen(true);
+              }}
+              title="Change Pilot Call Sign"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#64748b',
+              }}
+            >
+              <Edit3 size={13} />
+            </button>
+          </div>
+
           {/* Center: $1,000 USDT Leaderboard Prize Button */}
           <div
             className="hud-chip hud-chip-center"
@@ -1179,8 +1268,103 @@ export default function App() {
         </div>
       </div>
 
+      {/* 1. IMMEDIATE ONBOARDING NAME MODAL */}
+      {isNameModalOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 40,
+            background: 'rgba(2, 44, 94, 0.72)',
+            backdropFilter: 'blur(16px)',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <div className="cyber-card" style={{ maxWidth: '460px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+              <span className="badge-chrono overclock">🪪 PILOT REGISTRATION</span>
+            </div>
+
+            <h2
+              className="hud-title-font"
+              style={{
+                fontSize: '26px',
+                margin: '6px 0 4px',
+                color: '#0f172a',
+                letterSpacing: '1px',
+              }}
+            >
+              ENTER PILOT CALLSIGN
+            </h2>
+
+            <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 16px', lineHeight: 1.5 }}>
+              Register your name to compete for the <strong>$1,000 USDT Grand Prize Pool</strong>. Your flight scores will automatically store and rank on the global leaderboard!
+            </p>
+
+            {/* Prize Callout Box */}
+            <div
+              style={{
+                background: '#fef3c7',
+                border: '1.5px solid #f59e0b',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                marginBottom: '18px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <Coins size={28} color="#d97706" />
+              <div style={{ fontSize: '12px', color: '#92400e', fontWeight: 700 }}>
+                1st Place wins <strong>$1,000 USDT</strong>! Result will announce when creator's mood hits to give.
+              </div>
+            </div>
+
+            <form onSubmit={handleNameModalSubmit} style={{ textAlign: 'left' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  PILOT CALLSIGN / NAME *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Maverick, ShadowSoni, Titan"
+                  className="input-field"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  maxLength={18}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  USDT WALLET ADDRESS (OPTIONAL - FOR $1,000 PAYOUT)
+                </label>
+                <input
+                  type="text"
+                  placeholder="TRC-20 / ERC-20 / Solana wallet address"
+                  className="input-field"
+                  value={tempWallet}
+                  onChange={(e) => setTempWallet(e.target.value)}
+                />
+              </div>
+
+              <button type="submit" className="cyber-btn" style={{ width: '100%', marginBottom: '8px' }}>
+                <CheckCircle2 size={16} /> CONFIRM & JOIN $1,000 LEADERBOARD
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* START TITLE SCREEN */}
-      {gameState === 'START' && (
+      {gameState === 'START' && !isNameModalOpen && (
         <div
           style={{
             position: 'absolute',
@@ -1228,7 +1412,7 @@ export default function App() {
                   WIN $1,000 USDT PRIZE
                 </div>
                 <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
-                  Click to view Leaderboard & Mood Status →
+                  Registered Pilot: <strong>{pilotName || 'Anonymous'}</strong> • Scores auto-saved!
                 </div>
               </div>
               <Coins size={36} color="#d97706" />
@@ -1337,7 +1521,7 @@ export default function App() {
               FLIGHT TERMINATED
             </span>
 
-            <h2 className="hud-title-font" style={{ fontSize: '28px', margin: '2px 0 12px', color: '#0f172a' }}>
+            <h2 className="hud-title-font" style={{ fontSize: '28px', margin: '2px 0 10px', color: '#0f172a' }}>
               MISSION REPORT
             </h2>
 
@@ -1347,8 +1531,8 @@ export default function App() {
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '12px',
-                padding: '14px',
-                marginBottom: '14px',
+                padding: '12px',
+                marginBottom: '12px',
                 display: 'flex',
                 justifyContent: 'space-around',
                 alignItems: 'center',
@@ -1356,7 +1540,7 @@ export default function App() {
             >
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>FINAL SCORE</div>
-                <div className="hud-title-font" style={{ fontSize: '34px', color: '#0284c7' }}>
+                <div className="hud-title-font" style={{ fontSize: '32px', color: '#0284c7' }}>
                   {score}
                 </div>
               </div>
@@ -1367,11 +1551,34 @@ export default function App() {
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>RANK</div>
                 <div
                   className="hud-title-font"
-                  style={{ fontSize: '17px', color: getRank(score).color, fontWeight: 900 }}
+                  style={{ fontSize: '16px', color: getRank(score).color, fontWeight: 900 }}
                 >
                   {getRank(score).label}
                 </div>
               </div>
+            </div>
+
+            {/* Automatic Leaderboard Sync Notice */}
+            <div
+              style={{
+                background: '#ecfdf5',
+                border: '1.5px solid #10b981',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '14px',
+                fontSize: '12px',
+                color: '#065f46',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <CheckCircle2 size={15} color="#10b981" />
+              <span>
+                Score auto-saved to $1,000 Leaderboard for pilot <strong>{pilotName || 'Anonymous'}</strong>!
+              </span>
             </div>
 
             {/* Flight Metrics */}
@@ -1379,24 +1586,24 @@ export default function App() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '8px',
-                marginBottom: '16px',
+                gap: '6px',
+                marginBottom: '14px',
                 textAlign: 'left',
               }}
             >
-              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 10px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>DISTANCE</span>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{stats.distance} m</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 10px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>CLOSE CALLS</span>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7' }}>{stats.closeCalls}</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 10px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>ENERGY RINGS</span>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#10b981' }}>{stats.rings}</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 10px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>OVERCLOCK BURSTS</span>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#f59e0b' }}>{stats.overclocks}</div>
               </div>
@@ -1412,7 +1619,7 @@ export default function App() {
                 onClick={() => setIsLeaderboardOpen(true)}
                 style={{ width: '100%' }}
               >
-                <Trophy size={16} /> SUBMIT TO $1,000 LEADERBOARD
+                <Trophy size={16} /> VIEW $1,000 LEADERBOARD
               </button>
             </div>
           </div>
@@ -1515,39 +1722,49 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pilot Registration / Score Submission Form */}
-            <form onSubmit={handleScoreSubmit} style={{ marginBottom: '20px', textAlign: 'left' }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <User size={14} color="#0284c7" />
-                <span>SUBMIT YOUR SCORE (HIGH SCORE: {Math.max(score, highScore)})</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr auto', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  placeholder="Pilot Call Sign"
-                  className="input-field"
-                  value={pilotName}
-                  onChange={(e) => setPilotName(e.target.value)}
-                  maxLength={18}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="USDT Wallet (TRC20/ERC20)"
-                  className="input-field"
-                  value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                />
-                <button type="submit" className="cyber-btn" style={{ padding: '10px 16px', fontSize: '12px', height: '100%' }}>
-                  SUBMIT
+            {/* Pilot Profile & Auto-Saved Status */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                  <User size={15} color="#0284c7" />
+                  <span>PILOT PROFILE: <strong>{pilotName || 'Not Set'}</strong></span>
+                </div>
+                <button
+                  onClick={() => {
+                    setTempName(pilotName);
+                    setTempWallet(walletAddress);
+                    setIsNameModalOpen(true);
+                  }}
+                  style={{
+                    background: '#e0f2fe',
+                    border: '1px solid #7dd3fc',
+                    color: '#0369a1',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Edit Call Sign
                 </button>
               </div>
-              {submitSuccess && (
-                <div style={{ color: '#16a34a', fontSize: '12px', fontWeight: 800, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <CheckCircle2 size={14} /> Score submitted! You are registered on the global board.
-                </div>
-              )}
-            </form>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>
+                Wallet: <span style={{ fontFamily: 'monospace' }}>{walletAddress || 'No wallet linked yet'}</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, marginTop: '4px' }}>
+                ⚡ Auto-sync active: Your highest score ({Math.max(score, highScore)}) is automatically saved on this board!
+              </div>
+            </div>
 
             {/* All-Time Leaderboard Ranks */}
             <div style={{ textAlign: 'left', marginBottom: '16px' }}>
