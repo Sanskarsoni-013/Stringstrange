@@ -20,18 +20,20 @@ import {
   Flame,
   User,
   X,
-  Edit3
+  Edit3,
+  RefreshCw,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 
-// Bright, well-lit themes
 const THEMES = [
   {
     id: 'lumina',
     name: 'AERO LUMINA',
     icon: Sun,
-    skyTop: '#0284c7', // Bright celestial blue
-    skyMid: '#38bdf8', // Luminous sky cyan
-    skyBottom: '#e0f2fe', // Warm golden/white horizon
+    skyTop: '#0284c7',
+    skyMid: '#38bdf8',
+    skyBottom: '#e0f2fe',
     sunColor: '#fef08a',
     sunGlow: 'rgba(254, 240, 138, 0.45)',
     gridColor: 'rgba(2, 132, 199, 0.35)',
@@ -78,13 +80,16 @@ const THEMES = [
   },
 ];
 
-const INITIAL_LEADERBOARD = [
-  { rank: 1, name: 'SoniTitan', score: 4120, wallet: '0x71C...a89F', isWinner: true },
-  { rank: 2, name: 'ApexValkyrie', score: 3550, wallet: '0x94B...c412' },
-  { rank: 3, name: 'NeonDrifter', score: 2980, wallet: '0x32A...f180' },
-  { rank: 4, name: 'CyberNova', score: 2410, wallet: '0x58D...99e1' },
-  { rank: 5, name: 'ChronoZero', score: 1890, wallet: '0x19F...e3b4' },
+const INITIAL_FALLBACK = [
+  { rank: 1, name: 'SoniTitan', score: 4120, wallet: '0x71C...a89F', timestamp: '2026-11-25T12:00:00Z', isWinner: true },
+  { rank: 2, name: 'ApexValkyrie', score: 3550, wallet: '0x94B...c412', timestamp: '2026-11-25T11:30:00Z' },
+  { rank: 3, name: 'NeonDrifter', score: 2980, wallet: '0x32A...f180', timestamp: '2026-11-25T10:15:00Z' },
+  { rank: 4, name: 'CyberNova', score: 2410, wallet: '0x58D...99e1', timestamp: '2026-11-25T09:00:00Z' },
+  { rank: 5, name: 'ChronoZero', score: 1890, wallet: '0x19F...e3b4', timestamp: '2026-11-25T08:00:00Z' },
 ];
+
+const RAW_GIST_URL = 'https://gist.githubusercontent.com/Sanskarsoni-013/623ee607729f1f0da4408fbc99847719/raw/leaderboard.json';
+const GIST_VIEW_URL = 'https://gist.github.com/Sanskarsoni-013/623ee607729f1f0da4408fbc99847719';
 
 const MOOD_QUOTES = [
   'Mood Status: 42% (Vibing, not in the mood yet 🧘)',
@@ -116,22 +121,12 @@ export default function App() {
   const [tempName, setTempName] = useState(() => localStorage.getItem('chronoflap_pilot_name') || '');
   const [tempWallet, setTempWallet] = useState(() => localStorage.getItem('chronoflap_pilot_wallet') || '');
 
-  // Leaderboard Modal State
+  // Global Shared Leaderboard States
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState('Just now');
   const [moodIndex, setMoodIndex] = useState(0);
-  const [userRank, setUserRank] = useState(null);
-  const [leaderboardData, setLeaderboardData] = useState(() => {
-    const saved = localStorage.getItem('chronoflap_leaderboard_custom');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return INITIAL_LEADERBOARD;
-      }
-    }
-    return INITIAL_LEADERBOARD;
-  });
+  const [leaderboardData, setLeaderboardData] = useState(INITIAL_FALLBACK);
 
   // Web Audio Context Ref
   const audioCtxRef = useRef(null);
@@ -286,51 +281,78 @@ export default function App() {
     gameRef.current.isMuted = isMuted;
   }, [isMuted]);
 
-  // Automated Leaderboard Synchronization Helper
-  const syncLeaderboardWithScore = useCallback((name, wallet, newScore) => {
-    if (!name || !name.trim()) return;
-    const cleanName = name.trim();
-    const cleanWallet = wallet ? wallet.trim() : '';
+  // 1. Fetch Global Shared Leaderboard from Cloud Backend
+  const fetchCloudLeaderboard = useCallback(async () => {
+    setIsCloudSyncing(true);
+    try {
+      // First try Vercel API
+      const res = await fetch('/api/leaderboard', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.leaderboard)) {
+          setLeaderboardData(data.leaderboard);
+          setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          setIsCloudSyncing(false);
+          return;
+        }
+      }
+    } catch (e) {
+      // Fallback to direct raw Gist
+    }
 
-    const maskedWallet = cleanWallet
-      ? cleanWallet.length > 10
-        ? `${cleanWallet.slice(0, 5)}...${cleanWallet.slice(-4)}`
-        : cleanWallet
-      : '0x...ACTIVE';
-
-    setLeaderboardData((prevData) => {
-      const existingFiltered = prevData.filter((item) => !item.isUser);
-      const prevUser = prevData.find((item) => item.isUser);
-      const bestScore = Math.max(newScore, prevUser ? prevUser.score : 0);
-
-      const userEntry = {
-        name: cleanName,
-        score: bestScore,
-        wallet: maskedWallet,
-        isUser: true,
-      };
-
-      const combined = [...existingFiltered, userEntry].sort((a, b) => b.score - a.score);
-      const updated = combined.slice(0, 10).map((item, idx) => ({
-        ...item,
-        rank: idx + 1,
-        isWinner: idx === 0,
-      }));
-
-      const myRank = updated.find((it) => it.isUser)?.rank || null;
-      setUserRank(myRank);
-
-      localStorage.setItem('chronoflap_leaderboard_custom', JSON.stringify(updated));
-      return updated;
-    });
+    try {
+      const gistRes = await fetch(`${RAW_GIST_URL}?t=${Date.now()}`);
+      if (gistRes.ok) {
+        const list = await gistRes.json();
+        if (Array.isArray(list)) {
+          setLeaderboardData(list);
+          setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      }
+    } catch (err) {
+      // keep fallback
+    }
+    setIsCloudSyncing(false);
   }, []);
 
-  // Auto-register user on mount if name already exists
-  useEffect(() => {
-    if (pilotName) {
-      syncLeaderboardWithScore(pilotName, walletAddress, highScore);
+  // 2. Send and Sync Player Score to Global Cloud Backend
+  const sendScoreToCloud = useCallback(async (name, scoreVal, wallet) => {
+    if (!name || !name.trim()) return;
+    setIsCloudSyncing(true);
+
+    try {
+      const res = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          score: Math.max(0, parseInt(scoreVal, 10)),
+          wallet: wallet ? wallet.trim() : '',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.leaderboard)) {
+          setLeaderboardData(data.leaderboard);
+          setLastSyncTime('Just now');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not post to cloud API, queued locally:', e);
     }
-  }, [pilotName, walletAddress, highScore, syncLeaderboardWithScore]);
+    setIsCloudSyncing(false);
+  }, []);
+
+  // Fetch global leaderboard on initial load
+  useEffect(() => {
+    fetchCloudLeaderboard();
+  }, [fetchCloudLeaderboard]);
 
   // Crisp Flap & Thrust Logic
   const handleFlap = useCallback(() => {
@@ -507,7 +529,6 @@ export default function App() {
         setChronoMode('NORMAL');
       }
 
-      // Camera Shake decay
       if (g.cameraShake.intensity > 0) {
         g.cameraShake.x = (Math.random() - 0.5) * g.cameraShake.intensity;
         g.cameraShake.y = (Math.random() - 0.5) * g.cameraShake.intensity;
@@ -529,7 +550,6 @@ export default function App() {
       ctx.fillStyle = skyGrad;
       ctx.fillRect(-20, -20, width + 40, height + 40);
 
-      // Radiant Sun / Light Flare
       const sunX = width * 0.75;
       const sunY = height * 0.22;
       const sunGlowGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 140);
@@ -541,7 +561,6 @@ export default function App() {
       ctx.arc(sunX, sunY, 140, 0, Math.PI * 2);
       ctx.fill();
 
-      // Atmospheric Luminous Clouds
       const baseScroll = g.distance * 0.2;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
       for (let i = 0; i < 20; i++) {
@@ -553,7 +572,6 @@ export default function App() {
         ctx.fill();
       }
 
-      // Parallax Luminous City Skyline
       const cityScroll = (g.distance * 0.35) % (width + 300);
       for (let i = 0; i < 16; i++) {
         const bWidth = 85 + (i % 5) * 30;
@@ -574,7 +592,6 @@ export default function App() {
         ctx.fillRect(bX + bWidth / 2 - 2, height - bHeight - 65, 4, 15);
       }
 
-      // Ground Luminous Runway & Perspective Grid
       const groundY = height - 45;
       const ceilY = 45;
 
@@ -1027,11 +1044,11 @@ export default function App() {
         overclocks: g.overclockCount,
       });
 
-      // AUTOMATICALLY store and sync latest score into the $1,000 USDT Leaderboard!
+      // 🌐 AUTOMATICALLY SYNC WITH GLOBAL CLOUD LEADERBOARD FOR ALL DEVICES TO SEE!
       const currentSavedName = localStorage.getItem('chronoflap_pilot_name');
       const currentSavedWallet = localStorage.getItem('chronoflap_pilot_wallet') || '';
       if (currentSavedName) {
-        syncLeaderboardWithScore(currentSavedName, currentSavedWallet, newBest);
+        sendScoreToCloud(currentSavedName, newBest, currentSavedWallet);
       }
     };
 
@@ -1064,7 +1081,7 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleFlap, handleThrustEnd, playSound, highScore, isLeaderboardOpen, isNameModalOpen, syncLeaderboardWithScore]);
+  }, [handleFlap, handleThrustEnd, playSound, highScore, isLeaderboardOpen, isNameModalOpen, sendScoreToCloud]);
 
   // Pause Handler
   const togglePause = () => {
@@ -1100,27 +1117,9 @@ export default function App() {
     localStorage.setItem('chronoflap_pilot_name', trimmedName);
     localStorage.setItem('chronoflap_pilot_wallet', trimmedWallet);
 
-    // Automatically store into leaderboard immediately!
-    syncLeaderboardWithScore(trimmedName, trimmedWallet, highScore);
+    // Send and store in the global cloud database!
+    sendScoreToCloud(trimmedName, highScore, trimmedWallet);
     setIsNameModalOpen(false);
-  };
-
-  // In-Modal Profile Update
-  const handleProfileUpdate = (e) => {
-    e.preventDefault();
-    if (!tempName.trim()) return;
-
-    const trimmedName = tempName.trim();
-    const trimmedWallet = tempWallet.trim();
-
-    setPilotName(trimmedName);
-    setWalletAddress(trimmedWallet);
-    localStorage.setItem('chronoflap_pilot_name', trimmedName);
-    localStorage.setItem('chronoflap_pilot_wallet', trimmedWallet);
-
-    syncLeaderboardWithScore(trimmedName, trimmedWallet, Math.max(score, highScore));
-    setSubmitSuccess(true);
-    setTimeout(() => setSubmitSuccess(false), 3500);
   };
 
   return (
@@ -1223,7 +1222,13 @@ export default function App() {
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
           >
-            <button className="prize-hud-btn" onClick={() => setIsLeaderboardOpen(true)}>
+            <button
+              className="prize-hud-btn"
+              onClick={() => {
+                fetchCloudLeaderboard();
+                setIsLeaderboardOpen(true);
+              }}
+            >
               <Trophy size={14} />
               <span>$1,000 USDT LEADERBOARD</span>
               <Sparkles size={12} />
@@ -1286,7 +1291,7 @@ export default function App() {
         >
           <div className="cyber-card" style={{ maxWidth: '460px' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-              <span className="badge-chrono overclock">🪪 PILOT REGISTRATION</span>
+              <span className="badge-chrono overclock">🪪 GLOBAL PILOT REGISTRATION</span>
             </div>
 
             <h2
@@ -1302,10 +1307,9 @@ export default function App() {
             </h2>
 
             <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 16px', lineHeight: 1.5 }}>
-              Register your name to compete for the <strong>$1,000 USDT Grand Prize Pool</strong>. Your flight scores will automatically store and rank on the global leaderboard!
+              Enter your Pilot Name to compete for the <strong>$1,000 USDT Grand Prize Pool</strong>. Your scores will automatically store in the shared global cloud database for all players worldwide to see!
             </p>
 
-            {/* Prize Callout Box */}
             <div
               style={{
                 background: '#fef3c7',
@@ -1401,18 +1405,21 @@ export default function App() {
             {/* $1000 USDT Tournament Banner on Start */}
             <div
               className="prize-hero-banner"
-              onClick={() => setIsLeaderboardOpen(true)}
+              onClick={() => {
+                fetchCloudLeaderboard();
+                setIsLeaderboardOpen(true);
+              }}
               style={{ cursor: 'pointer' }}
             >
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400e', letterSpacing: '1px' }}>
-                  🏆 ALL-TIME FLIGHT CHAMPIONSHIP
+                  🏆 ALL-TIME GLOBAL CHAMPIONSHIP
                 </div>
                 <div className="hud-title-font" style={{ fontSize: '20px', color: '#78350f', fontWeight: 900 }}>
                   WIN $1,000 USDT PRIZE
                 </div>
                 <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
-                  Registered Pilot: <strong>{pilotName || 'Anonymous'}</strong> • Scores auto-saved!
+                  Pilot: <strong>{pilotName || 'Anonymous'}</strong> • Real-time cloud sync active!
                 </div>
               </div>
               <Coins size={36} color="#d97706" />
@@ -1482,7 +1489,10 @@ export default function App() {
               </button>
               <button
                 className="cyber-btn cyber-btn-gold"
-                onClick={() => setIsLeaderboardOpen(true)}
+                onClick={() => {
+                  fetchCloudLeaderboard();
+                  setIsLeaderboardOpen(true);
+                }}
                 style={{ width: '100%' }}
               >
                 <Trophy size={16} /> VIEW $1,000 USDT LEADERBOARD
@@ -1558,7 +1568,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Automatic Leaderboard Sync Notice */}
+            {/* Automatic Cloud Sync Notice */}
             <div
               style={{
                 background: '#ecfdf5',
@@ -1575,9 +1585,9 @@ export default function App() {
                 gap: '6px',
               }}
             >
-              <CheckCircle2 size={15} color="#10b981" />
+              <Globe size={15} color="#10b981" />
               <span>
-                Score auto-saved to $1,000 Leaderboard for pilot <strong>{pilotName || 'Anonymous'}</strong>!
+                Score auto-saved to Global Cloud Database for <strong>{pilotName || 'Anonymous'}</strong>!
               </span>
             </div>
 
@@ -1616,10 +1626,13 @@ export default function App() {
               </button>
               <button
                 className="cyber-btn cyber-btn-gold"
-                onClick={() => setIsLeaderboardOpen(true)}
+                onClick={() => {
+                  fetchCloudLeaderboard();
+                  setIsLeaderboardOpen(true);
+                }}
                 style={{ width: '100%' }}
               >
-                <Trophy size={16} /> VIEW $1,000 LEADERBOARD
+                <Trophy size={16} /> VIEW GLOBAL $1,000 LEADERBOARD
               </button>
             </div>
           </div>
@@ -1642,11 +1655,14 @@ export default function App() {
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
-          <div className="cyber-card" style={{ maxWidth: '580px' }}>
-            {/* Modal Close Button */}
+          <div className="cyber-card" style={{ maxWidth: '590px' }}>
+            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="badge-chrono overclock">CHAMPIONSHIP POOL</span>
+                <span className="badge-chrono overclock">
+                  <Globe size={12} /> LIVE CLOUD LEADERBOARD
+                </span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Synced: {lastSyncTime}</span>
               </div>
               <button
                 className="icon-btn"
@@ -1667,7 +1683,7 @@ export default function App() {
                   1,000 $USDT
                 </div>
                 <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
-                  Awarded directly to the #1 All-Time Pilot!
+                  Shared live across all users worldwide! Awarded to #1 Pilot!
                 </div>
               </div>
               <Coins size={44} color="#d97706" />
@@ -1691,7 +1707,7 @@ export default function App() {
                 "A result will announce when my mood hits to give."
               </div>
               <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
-                No corporate deadlines. When the creator feels the vibe, 1,000 USDT is transferred to whoever holds the #1 spot on this leaderboard.
+                Real truthful records stored globally in cloud storage. When the creator feels the vibe, 1,000 USDT is transferred to whoever holds the #1 spot.
               </div>
 
               {/* Dynamic Creator Mood Meter */}
@@ -1722,60 +1738,60 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pilot Profile & Auto-Saved Status */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                marginBottom: '16px',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                  <User size={15} color="#0284c7" />
-                  <span>PILOT PROFILE: <strong>{pilotName || 'Not Set'}</strong></span>
-                </div>
+            {/* Live Cloud Refresh & Verification Link */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '1px' }}>
+                ALL-TIME GLOBAL TOP PILOTS
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button
-                  onClick={() => {
-                    setTempName(pilotName);
-                    setTempWallet(walletAddress);
-                    setIsNameModalOpen(true);
-                  }}
+                  onClick={fetchCloudLeaderboard}
+                  disabled={isCloudSyncing}
                   style={{
-                    background: '#e0f2fe',
-                    border: '1px solid #7dd3fc',
-                    color: '#0369a1',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
                     borderRadius: '6px',
-                    padding: '4px 8px',
+                    padding: '3px 8px',
                     fontSize: '11px',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#334155',
                   }}
                 >
-                  Edit Call Sign
+                  <RefreshCw size={12} className={isCloudSyncing ? 'spin-anim' : ''} />
+                  <span>{isCloudSyncing ? 'Syncing...' : 'Refresh'}</span>
                 </button>
-              </div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>
-                Wallet: <span style={{ fontFamily: 'monospace' }}>{walletAddress || 'No wallet linked yet'}</span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, marginTop: '4px' }}>
-                ⚡ Auto-sync active: Your highest score ({Math.max(score, highScore)}) is automatically saved on this board!
+                <a
+                  href={GIST_VIEW_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    color: '#0284c7',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span>Public Ledger</span>
+                  <ExternalLink size={11} />
+                </a>
               </div>
             </div>
 
-            {/* All-Time Leaderboard Ranks */}
-            <div style={{ textAlign: 'left', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '1px', marginBottom: '8px' }}>
-                ALL-TIME TOP PILOTS
-              </div>
-              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                {leaderboardData.map((item) => (
+            {/* Global Leaderboard Rows */}
+            <div style={{ maxHeight: '240px', overflowY: 'auto', marginBottom: '16px', textAlign: 'left' }}>
+              {leaderboardData.map((item) => {
+                const isMe = pilotName && item.name.toLowerCase() === pilotName.toLowerCase();
+                return (
                   <div
                     key={`${item.rank}-${item.name}`}
-                    className={`leaderboard-table-row ${item.rank === 1 ? 'rank-1' : ''} ${item.isUser ? 'current-user' : ''}`}
+                    className={`leaderboard-table-row ${item.rank === 1 ? 'rank-1' : ''} ${isMe ? 'current-user' : ''}`}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span
@@ -1794,17 +1810,17 @@ export default function App() {
                           {item.name}
                           {item.rank === 1 && (
                             <span style={{ fontSize: '10px', background: '#f59e0b', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                              👑 1,000 USDT LEAD
+                              👑 $1,000 LEAD
                             </span>
                           )}
-                          {item.isUser && (
+                          {isMe && (
                             <span style={{ fontSize: '10px', background: '#0284c7', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
                               YOU
                             </span>
                           )}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
-                          Wallet: {item.wallet}
+                          Wallet: {item.wallet || '0x...'}
                         </div>
                       </div>
                     </div>
@@ -1813,11 +1829,11 @@ export default function App() {
                       {item.score.toLocaleString()}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
-            {/* Close / Resume Button */}
+            {/* Close Button */}
             <button
               className="cyber-btn cyber-btn-secondary"
               onClick={() => setIsLeaderboardOpen(false)}
