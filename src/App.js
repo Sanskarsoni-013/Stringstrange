@@ -1,6 +1,26 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
-import { Volume2, VolumeX, RotateCcw, Zap, Play, Trophy, Sun, Moon, Sunrise, Activity } from 'lucide-react';
+import {
+  Volume2,
+  VolumeX,
+  RotateCcw,
+  Zap,
+  Play,
+  Trophy,
+  Sun,
+  Moon,
+  Sunrise,
+  Activity,
+  Coins,
+  Sparkles,
+  Award,
+  Wallet,
+  CheckCircle2,
+  Clock,
+  Flame,
+  User,
+  X
+} from 'lucide-react';
 
 // Bright, well-lit themes
 const THEMES = [
@@ -25,9 +45,9 @@ const THEMES = [
     id: 'sunset',
     name: 'SUNSET HORIZON',
     icon: Sunrise,
-    skyTop: '#4c1d95', // Rich purple
-    skyMid: '#db2777', // Vibrant magenta
-    skyBottom: '#fde047', // Radiant sunset gold
+    skyTop: '#4c1d95',
+    skyMid: '#db2777',
+    skyBottom: '#fde047',
     sunColor: '#fbbf24',
     sunGlow: 'rgba(251, 191, 36, 0.55)',
     gridColor: 'rgba(219, 39, 119, 0.4)',
@@ -42,9 +62,9 @@ const THEMES = [
     id: 'cyber',
     name: 'CYBER AURORA',
     icon: Moon,
-    skyTop: '#0f172a', // Deep slate
-    skyMid: '#065f46', // Vibrant emerald
-    skyBottom: '#6ee7b7', // Glowing mint
+    skyTop: '#0f172a',
+    skyMid: '#065f46',
+    skyBottom: '#6ee7b7',
     sunColor: '#34d399',
     sunGlow: 'rgba(52, 211, 153, 0.4)',
     gridColor: 'rgba(16, 185, 129, 0.35)',
@@ -55,6 +75,23 @@ const THEMES = [
     droneAccent: '#10b981',
     droneFlame: '#00f3ff',
   },
+];
+
+const INITIAL_LEADERBOARD = [
+  { rank: 1, name: 'SoniTitan', score: 4120, wallet: '0x71C...a89F', isWinner: true },
+  { rank: 2, name: 'ApexValkyrie', score: 3550, wallet: '0x94B...c412' },
+  { rank: 3, name: 'NeonDrifter', score: 2980, wallet: '0x32A...f180' },
+  { rank: 4, name: 'CyberNova', score: 2410, wallet: '0x58D...99e1' },
+  { rank: 5, name: 'ChronoZero', score: 1890, wallet: '0x19F...e3b4' },
+];
+
+const MOOD_QUOTES = [
+  'Mood Status: 42% (Vibing, not in the mood yet 🧘)',
+  'Mood Status: 18% (Currently eating pizza 🍕 - keep practicing)',
+  'Mood Status: 65% (Feeling generous soon... maybe tomorrow? 👀)',
+  'Mood Status: 33% (Chilling in the metaverse ☕)',
+  'Mood Status: 79% (High energy! Payout radar warming up 🔥)',
+  'Mood Status: 12% (Taking a nap 😴 - scores are safe)',
 ];
 
 export default function App() {
@@ -70,6 +107,24 @@ export default function App() {
   const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
   const [isMuted, setIsMuted] = useState(false);
   const [stats, setStats] = useState({ distance: 0, closeCalls: 0, rings: 0, overclocks: 0 });
+
+  // Leaderboard & Prize System States
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [pilotName, setPilotName] = useState(() => localStorage.getItem('chronoflap_pilot_name') || '');
+  const [walletAddress, setWalletAddress] = useState(() => localStorage.getItem('chronoflap_pilot_wallet') || '');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [moodIndex, setMoodIndex] = useState(0);
+  const [leaderboardData, setLeaderboardData] = useState(() => {
+    const saved = localStorage.getItem('chronoflap_leaderboard_custom');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_LEADERBOARD;
+      }
+    }
+    return INITIAL_LEADERBOARD;
+  });
 
   // Web Audio Context Ref
   const audioCtxRef = useRef(null);
@@ -149,9 +204,9 @@ export default function App() {
         const gain = ctx.createGain();
         osc1.type = 'sine';
         osc2.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, now); // D5
-        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
-        osc2.frequency.setValueAtTime(1174.66, now); // D6
+        osc1.frequency.setValueAtTime(587.33, now);
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+        osc2.frequency.setValueAtTime(1174.66, now);
         gain.gain.setValueAtTime(0.25, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
         osc1.connect(gain);
@@ -229,18 +284,18 @@ export default function App() {
     initAudio();
     const g = gameRef.current;
 
+    if (isLeaderboardOpen) return;
+
     if (g.state === 'START' || g.state === 'GAMEOVER') {
       startGame();
       return;
     }
     if (g.state !== 'PLAYING') return;
 
-    // Crisp upward flap impulse
     g.drone.vy = -8.2;
     g.isThrusting = true;
     playSound('flap');
 
-    // Emit luminous thruster sparks
     const d = g.drone;
     for (let i = 0; i < 7; i++) {
       g.particles.push({
@@ -254,7 +309,7 @@ export default function App() {
         decay: Math.random() * 0.05 + 0.03,
       });
     }
-  }, [initAudio, playSound]);
+  }, [initAudio, playSound, isLeaderboardOpen]);
 
   const handleThrustEnd = useCallback(() => {
     gameRef.current.isThrusting = false;
@@ -263,6 +318,7 @@ export default function App() {
   // Start fresh game run
   const startGame = useCallback(() => {
     initAudio();
+    setIsLeaderboardOpen(false);
     const logicalHeight = window.innerHeight;
 
     gameRef.current = {
@@ -270,7 +326,7 @@ export default function App() {
       state: 'PLAYING',
       drone: {
         x: 160,
-        y: Math.max(150, logicalHeight * 0.45), // Safe vertical center
+        y: Math.max(150, logicalHeight * 0.45),
         vy: -3.0,
         angle: 0,
         width: 46,
@@ -280,7 +336,7 @@ export default function App() {
       isThrusting: false,
       timeScale: 1.0,
       targetTimeScale: 1.0,
-      graceTimer: 1.2, // 1.2 second spawn invulnerability
+      graceTimer: 1.2,
       cameraShake: { x: 0, y: 0, intensity: 0 },
       obstacles: [],
       rings: [],
@@ -296,7 +352,7 @@ export default function App() {
       ringsCollected: 0,
       overclockCount: 0,
       lastTime: performance.now(),
-      nextObstacleDist: 480, // Ample reaction space before first obstacle
+      nextObstacleDist: 480,
       nextRingDist: 240,
       activeTheme: selectedTheme,
       isMuted: isMuted,
@@ -326,7 +382,6 @@ export default function App() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Fragment spawner for laser gate shatters
     const spawnLaserShatter = (x, y, h, color) => {
       for (let i = 0; i < 28; i++) {
         gameRef.current.fragments.push({
@@ -355,9 +410,7 @@ export default function App() {
       });
     };
 
-    // The Master Animation Frame
     const render = (timestamp) => {
-      // Ensure loop NEVER dies
       animationFrameId = requestAnimationFrame(render);
 
       const g = gameRef.current;
@@ -366,14 +419,12 @@ export default function App() {
       const height = window.innerHeight;
       const dpr = window.devicePixelRatio || 1;
 
-      // Always reset transform to exact DPR so all drawing coordinates are pure logical CSS pixels
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       if (!g.lastTime) g.lastTime = timestamp;
       const rawDt = Math.min((timestamp - g.lastTime) / 1000, 0.06);
       g.lastTime = timestamp;
 
-      // Update grace invulnerability timer
       if (g.graceTimer > 0) {
         g.graceTimer -= rawDt;
       }
@@ -385,7 +436,6 @@ export default function App() {
         } else if (g.isThrusting) {
           g.targetTimeScale = 1.0;
         } else {
-          // Responsive tactical slow-motion (0.45x)
           g.targetTimeScale = 0.45;
         }
       } else {
@@ -395,7 +445,6 @@ export default function App() {
       g.timeScale += (g.targetTimeScale - g.timeScale) * 0.2;
       const dt = rawDt * g.timeScale;
 
-      // Synchronize UI badge
       if (g.isOverclockActive) {
         setChronoMode('OVERCLOCK');
       } else if (g.timeScale < 0.65) {
@@ -438,7 +487,7 @@ export default function App() {
       ctx.arc(sunX, sunY, 140, 0, Math.PI * 2);
       ctx.fill();
 
-      // Atmospheric Luminous Clouds / Dust Particles
+      // Atmospheric Luminous Clouds
       const baseScroll = g.distance * 0.2;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
       for (let i = 0; i < 20; i++) {
@@ -457,19 +506,16 @@ export default function App() {
         const bHeight = 110 + ((i * 47) % 200);
         const bX = ((i * 125 - cityScroll) % (width + 300) + width + 300) % (width + 300) - 150;
 
-        // Clean white/chrome building with glass gradient
         const bGrad = ctx.createLinearGradient(0, height - bHeight - 50, 0, height);
         bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
         bGrad.addColorStop(1, 'rgba(224, 242, 254, 0.95)');
         ctx.fillStyle = bGrad;
         ctx.fillRect(bX, height - bHeight - 50, bWidth, bHeight);
 
-        // Building borders & illuminated windows
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(bX, height - bHeight - 50, bWidth, bHeight);
 
-        // Rooftop antenna beacon
         ctx.fillStyle = theme.laserGlow;
         ctx.fillRect(bX + bWidth / 2 - 2, height - bHeight - 65, 4, 15);
       }
@@ -484,7 +530,6 @@ export default function App() {
       ctx.fillStyle = groundGrad;
       ctx.fillRect(0, groundY, width, height - groundY);
 
-      // Glowing Runway Horizon Line
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
       ctx.shadowColor = theme.laserGlow;
@@ -495,7 +540,6 @@ export default function App() {
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Ground Perspective Lines
       ctx.strokeStyle = theme.gridColor;
       ctx.lineWidth = 1.5;
       const gridOffset = (g.distance * 3) % 45;
@@ -506,7 +550,6 @@ export default function App() {
         ctx.stroke();
       }
 
-      // Ceiling Guide Border
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
       ctx.beginPath();
       ctx.moveTo(0, ceilY);
@@ -518,7 +561,6 @@ export default function App() {
         const speed = (g.isOverclockActive ? 560 : 300);
         g.distance += speed * dt;
 
-        // Overclock Timer
         if (g.isOverclockActive) {
           g.overclockTimer -= dt;
           setOverclock(Math.max(0, (g.overclockTimer / 4.5) * 100));
@@ -530,31 +572,25 @@ export default function App() {
           }
         }
 
-        // Drone Physics & Gravity
         const gravity = 20.0;
         g.drone.vy += gravity * dt;
         g.drone.y += g.drone.vy * dt * 60;
 
-        // Aerodynamic pitch angle
         const targetAngle = Math.max(-0.4, Math.min(0.55, g.drone.vy * 0.05));
         g.drone.angle += (targetAngle - g.drone.angle) * 0.18;
 
-        // Ceiling bounce
         if (g.drone.y - 12 <= ceilY) {
           g.drone.y = ceilY + 12;
           g.drone.vy = 2;
         }
 
-        // Ground collision (only if grace period has expired)
         if (g.drone.y + 12 >= groundY && g.graceTimer <= 0) {
           triggerGameOver('COLLIDED WITH SURFACE RUNWAY');
         }
 
-        // Afterburner trail history
         g.drone.trail.unshift({ x: g.drone.x - 16, y: g.drone.y, alpha: 1.0 });
         if (g.drone.trail.length > 18) g.drone.trail.pop();
 
-        // Spawn Laser Pylons
         g.nextObstacleDist -= speed * dt;
         if (g.nextObstacleDist <= 0) {
           const gapSize = Math.max(160, 210 - Math.min(g.distance * 0.004, 50));
@@ -574,7 +610,6 @@ export default function App() {
           g.nextObstacleDist = Math.random() * 140 + 280;
         }
 
-        // Spawn Energy Rings
         g.nextRingDist -= speed * dt;
         if (g.nextRingDist <= 0) {
           const ry = Math.random() * (groundY - ceilY - 160) + ceilY + 80;
@@ -588,12 +623,11 @@ export default function App() {
           g.nextRingDist = Math.random() * 200 + 190;
         }
 
-        // Score Accumulation
         g.score += (g.isOverclockActive ? 8 : 2) * dt * 10;
         setScore(Math.floor(g.score));
       }
 
-      // 4. RENDER OBSTACLES (Bright Glowing Laser Pylons)
+      // 4. RENDER OBSTACLES (Bright Laser Pylons)
       for (let i = g.obstacles.length - 1; i >= 0; i--) {
         const obs = g.obstacles[i];
         if (g.state === 'PLAYING') {
@@ -606,7 +640,6 @@ export default function App() {
         const bottomY = obs.gapY + obs.gapSize;
         const bottomHeight = groundY - bottomY;
 
-        // Top Pylon Post
         const pylonGrad = ctx.createLinearGradient(obs.x - 22, 0, obs.x + 22, 0);
         pylonGrad.addColorStop(0, '#ffffff');
         pylonGrad.addColorStop(0.5, '#e2e8f0');
@@ -618,18 +651,15 @@ export default function App() {
         ctx.fillRect(obs.x - obs.width / 2, ceilY, obs.width, topHeight - ceilY);
         ctx.strokeRect(obs.x - obs.width / 2, ceilY, obs.width, topHeight - ceilY);
 
-        // Bottom Pylon Post
         ctx.fillRect(obs.x - obs.width / 2, bottomY, obs.width, bottomHeight);
         ctx.strokeRect(obs.x - obs.width / 2, bottomY, obs.width, bottomHeight);
 
-        // High-Brightness Laser Emitter Rings
         ctx.fillStyle = theme.laserGlow;
         ctx.shadowColor = theme.laserGlow;
         ctx.shadowBlur = 16;
         ctx.fillRect(obs.x - 16, topHeight - 10, 32, 10);
         ctx.fillRect(obs.x - 16, bottomY, 32, 10);
 
-        // Brilliant Laser Beam
         const beamGrad = ctx.createLinearGradient(obs.x - 10, 0, obs.x + 10, 0);
         beamGrad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
         beamGrad.addColorStop(0.5, theme.laserGlow);
@@ -637,18 +667,15 @@ export default function App() {
         ctx.fillStyle = beamGrad;
         ctx.fillRect(obs.x - 6, topHeight, 12, obs.gapSize);
 
-        // Pure white core beam
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(obs.x - 2, topHeight, 4, obs.gapSize);
         ctx.shadowBlur = 0;
 
-        // Collision & Close Call Logic
         if (g.state === 'PLAYING') {
           const dx = Math.abs(g.drone.x - obs.x);
           const dy = g.drone.y;
 
           if (dx < obs.width / 2 + 16) {
-            // Overclock shatters laser gates
             if (g.isOverclockActive) {
               obs.shattered = true;
               g.cameraShake.intensity = 18;
@@ -659,14 +686,12 @@ export default function App() {
               continue;
             }
 
-            // Normal Collision (ignored during grace period)
             if (g.graceTimer <= 0) {
               if (dy - 12 < topHeight || dy + 12 > bottomY) {
                 triggerGameOver('VAPORIZED BY LASER PYLON');
               }
             }
 
-            // Close Call Detection (Threaded within 20px)
             if (!obs.closeCallDone && (Math.abs(dy - 12 - topHeight) < 22 || Math.abs(dy + 12 - bottomY) < 22)) {
               obs.closeCallDone = true;
               g.closeCalls++;
@@ -679,7 +704,6 @@ export default function App() {
             }
           }
 
-          // Successfully cleared gate
           if (!obs.passed && g.drone.x > obs.x + obs.width / 2) {
             obs.passed = true;
             g.score += 25;
@@ -754,7 +778,6 @@ export default function App() {
           ctx.closePath();
           ctx.stroke();
 
-          // Center golden core
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
           ctx.arc(0, 0, 4, 0, Math.PI * 2);
@@ -809,7 +832,6 @@ export default function App() {
       // 7. RENDER DRONE (PLAYER)
       const d = g.drone;
 
-      // Glowing Ribbon Contrail
       if (d.trail.length > 1) {
         ctx.save();
         for (let t = 0; t < d.trail.length - 1; t++) {
@@ -832,12 +854,10 @@ export default function App() {
       ctx.translate(d.x, d.y);
       ctx.rotate(d.angle);
 
-      // Grace period flashing
       if (g.graceTimer > 0 && Math.floor(timestamp / 100) % 2 === 0) {
         ctx.globalAlpha = 0.5;
       }
 
-      // Overclock Sun Forcefield
       if (g.isOverclockActive) {
         ctx.strokeStyle = '#f59e0b';
         ctx.shadowColor = '#ef4444';
@@ -849,7 +869,6 @@ export default function App() {
         ctx.shadowBlur = 0;
       }
 
-      // Sleek White & Chrome Delta Wing Chassis
       const droneGrad = ctx.createLinearGradient(26, 0, -20, 0);
       droneGrad.addColorStop(0, '#ffffff');
       droneGrad.addColorStop(0.5, '#f1f5f9');
@@ -861,17 +880,16 @@ export default function App() {
       ctx.shadowBlur = 8;
 
       ctx.beginPath();
-      ctx.moveTo(26, 0); // Sharp nose
-      ctx.lineTo(-18, -15); // Top wingtip
-      ctx.lineTo(-10, -4); // Wing notch
-      ctx.lineTo(-22, 0); // Exhaust center
+      ctx.moveTo(26, 0);
+      ctx.lineTo(-18, -15);
+      ctx.lineTo(-10, -4);
+      ctx.lineTo(-22, 0);
       ctx.lineTo(-10, 4);
-      ctx.lineTo(-18, 15); // Bottom wingtip
+      ctx.lineTo(-18, 15);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // Wing Racing Accent Stripes
       ctx.strokeStyle = theme.droneAccent;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -881,7 +899,6 @@ export default function App() {
       ctx.lineTo(-12, 10);
       ctx.stroke();
 
-      // Luminous Glass Cockpit
       const cockpitGrad = ctx.createLinearGradient(0, -4, 0, 4);
       cockpitGrad.addColorStop(0, theme.droneAccent);
       cockpitGrad.addColorStop(1, '#ffffff');
@@ -890,7 +907,6 @@ export default function App() {
       ctx.ellipse(4, 0, 8, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Dual Twin Afterburners
       ctx.fillStyle = g.isOverclockActive ? '#f59e0b' : theme.droneFlame;
       ctx.fillRect(-24, -6, 6, 3.5);
       ctx.fillRect(-24, 2.5, 6, 3.5);
@@ -959,8 +975,8 @@ export default function App() {
 
     animationFrameId = requestAnimationFrame(render);
 
-    // Keyboard controls
     const handleKeyDown = (e) => {
+      if (isLeaderboardOpen) return;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         handleFlap();
@@ -970,6 +986,7 @@ export default function App() {
     };
 
     const handleKeyUp = (e) => {
+      if (isLeaderboardOpen) return;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         handleThrustEnd();
@@ -985,7 +1002,7 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleFlap, handleThrustEnd, playSound, highScore]);
+  }, [handleFlap, handleThrustEnd, playSound, highScore, isLeaderboardOpen]);
 
   // Pause Handler
   const togglePause = () => {
@@ -1006,6 +1023,47 @@ export default function App() {
     if (sc >= 700) return { label: 'A SKY PILOT', color: '#10b981' };
     if (sc >= 300) return { label: 'B CADET', color: '#a855f7' };
     return { label: 'C ROOKIE', color: '#64748b' };
+  };
+
+  // Leaderboard Score Submission Handler
+  const handleScoreSubmit = (e) => {
+    e.preventDefault();
+    if (!pilotName.trim()) return;
+
+    localStorage.setItem('chronoflap_pilot_name', pilotName.trim());
+    if (walletAddress.trim()) {
+      localStorage.setItem('chronoflap_pilot_wallet', walletAddress.trim());
+    }
+
+    const currentScore = Math.max(score, highScore);
+    const maskedWallet = walletAddress.trim()
+      ? walletAddress.trim().length > 10
+        ? `${walletAddress.trim().slice(0, 5)}...${walletAddress.trim().slice(-4)}`
+        : walletAddress.trim()
+      : '0x...UNSET';
+
+    // Insert user into leaderboard
+    const newEntry = {
+      name: pilotName.trim(),
+      score: currentScore,
+      wallet: maskedWallet,
+      isUser: true,
+    };
+
+    const existingFiltered = leaderboardData.filter((item) => !item.isUser);
+    const combined = [...existingFiltered, newEntry].sort((a, b) => b.score - a.score);
+
+    // Re-rank
+    const updated = combined.slice(0, 10).map((item, idx) => ({
+      ...item,
+      rank: idx + 1,
+      isWinner: idx === 0,
+    }));
+
+    setLeaderboardData(updated);
+    localStorage.setItem('chronoflap_leaderboard_custom', JSON.stringify(updated));
+    setSubmitSuccess(true);
+    setTimeout(() => setSubmitSuccess(false), 4000);
   };
 
   return (
@@ -1070,10 +1128,23 @@ export default function App() {
             </div>
           </div>
 
-          {/* Center: Overclock Energy Meter */}
-          <div className="hud-chip" style={{ gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#f59e0b' }}>
-              <Zap size={15} />
+          {/* Center: $1,000 USDT Leaderboard Prize Button */}
+          <div
+            className="hud-chip hud-chip-center"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            <button className="prize-hud-btn" onClick={() => setIsLeaderboardOpen(true)}>
+              <Trophy size={14} />
+              <span>$1,000 USDT LEADERBOARD</span>
+              <Sparkles size={12} />
+            </button>
+          </div>
+
+          {/* Center-Right: Overclock Energy Meter */}
+          <div className="hud-chip" style={{ gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#f59e0b' }}>
+              <Zap size={14} />
               <span style={{ fontWeight: 800 }}>ENERGY</span>
             </div>
             <div className="overclock-meter">
@@ -1091,7 +1162,7 @@ export default function App() {
             onTouchStart={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '6px' }}>
-              <Trophy size={16} color="#f59e0b" />
+              <Award size={16} color="#f59e0b" />
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
                 RECORD <span style={{ color: '#0f172a', fontWeight: 800, marginLeft: '4px' }}>{highScore}</span>
               </div>
@@ -1132,8 +1203,8 @@ export default function App() {
             <h1
               className="hud-title-font"
               style={{
-                fontSize: '36px',
-                margin: '6px 0 4px',
+                fontSize: '34px',
+                margin: '4px 0 2px',
                 background: 'linear-gradient(135deg, #0284c7, #2563eb)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -1142,16 +1213,33 @@ export default function App() {
             >
               CHRONOFLAP 2099
             </h1>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 20px', fontWeight: 600 }}>
-              Tap or Space to flap. Release to glide in tactical Bullet-Time.
-            </p>
+
+            {/* $1000 USDT Tournament Banner on Start */}
+            <div
+              className="prize-hero-banner"
+              onClick={() => setIsLeaderboardOpen(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400e', letterSpacing: '1px' }}>
+                  🏆 ALL-TIME FLIGHT CHAMPIONSHIP
+                </div>
+                <div className="hud-title-font" style={{ fontSize: '20px', color: '#78350f', fontWeight: 900 }}>
+                  WIN $1,000 USDT PRIZE
+                </div>
+                <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
+                  Click to view Leaderboard & Mood Status →
+                </div>
+              </div>
+              <Coins size={36} color="#d97706" />
+            </div>
 
             {/* Bright Theme Selector */}
-            <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px' }}>
+            <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, letterSpacing: '1px', marginBottom: '6px' }}>
                 SELECT ILLUMINATED THEME
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                 {THEMES.map((th) => {
                   const Icon = th.icon;
                   const isSelected = selectedTheme.id === th.id;
@@ -1162,8 +1250,8 @@ export default function App() {
                       style={{
                         background: isSelected ? '#e0f2fe' : '#f8fafc',
                         border: `2px solid ${isSelected ? '#0284c7' : '#e2e8f0'}`,
-                        borderRadius: '10px',
-                        padding: '10px 6px',
+                        borderRadius: '8px',
+                        padding: '8px 4px',
                         color: isSelected ? '#0369a1' : '#64748b',
                         cursor: 'pointer',
                         fontSize: '11px',
@@ -1172,11 +1260,11 @@ export default function App() {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '4px',
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <Icon size={16} color={isSelected ? '#0284c7' : '#94a3b8'} />
+                      <Icon size={15} color={isSelected ? '#0284c7' : '#94a3b8'} />
                       {th.name}
                     </button>
                   );
@@ -1189,12 +1277,12 @@ export default function App() {
               style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                marginBottom: '22px',
-                fontSize: '13px',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '18px',
+                fontSize: '12px',
                 color: '#334155',
-                lineHeight: 1.6,
+                lineHeight: 1.5,
                 textAlign: 'left',
               }}
             >
@@ -1203,10 +1291,19 @@ export default function App() {
               <div>• <strong>100% ENERGY:</strong> Invincible <strong>Overclock Hyperdrive</strong> speed burst!</div>
             </div>
 
-            {/* Launch Button */}
-            <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
-              <Play size={18} /> LAUNCH FLIGHT [SPACE]
-            </button>
+            {/* Launch & Leaderboard Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
+                <Play size={18} /> LAUNCH FLIGHT [SPACE]
+              </button>
+              <button
+                className="cyber-btn cyber-btn-gold"
+                onClick={() => setIsLeaderboardOpen(true)}
+                style={{ width: '100%' }}
+              >
+                <Trophy size={16} /> VIEW $1,000 USDT LEADERBOARD
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1234,13 +1331,13 @@ export default function App() {
                 background: '#fee2e2',
                 color: '#dc2626',
                 border: '1px solid #fca5a5',
-                marginBottom: '10px',
+                marginBottom: '8px',
               }}
             >
               FLIGHT TERMINATED
             </span>
 
-            <h2 className="hud-title-font" style={{ fontSize: '30px', margin: '4px 0 16px', color: '#0f172a' }}>
+            <h2 className="hud-title-font" style={{ fontSize: '28px', margin: '2px 0 12px', color: '#0f172a' }}>
               MISSION REPORT
             </h2>
 
@@ -1250,8 +1347,8 @@ export default function App() {
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '12px',
-                padding: '16px',
-                marginBottom: '18px',
+                padding: '14px',
+                marginBottom: '14px',
                 display: 'flex',
                 justifyContent: 'space-around',
                 alignItems: 'center',
@@ -1259,18 +1356,18 @@ export default function App() {
             >
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>FINAL SCORE</div>
-                <div className="hud-title-font" style={{ fontSize: '36px', color: '#0284c7' }}>
+                <div className="hud-title-font" style={{ fontSize: '34px', color: '#0284c7' }}>
                   {score}
                 </div>
               </div>
 
-              <div style={{ width: '1px', height: '40px', background: '#cbd5e1' }} />
+              <div style={{ width: '1px', height: '36px', background: '#cbd5e1' }} />
 
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>RANK</div>
                 <div
                   className="hud-title-font"
-                  style={{ fontSize: '18px', color: getRank(score).color, fontWeight: 900 }}
+                  style={{ fontSize: '17px', color: getRank(score).color, fontWeight: 900 }}
                 >
                   {getRank(score).label}
                 </div>
@@ -1283,31 +1380,233 @@ export default function App() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '8px',
-                marginBottom: '20px',
+                marginBottom: '16px',
                 textAlign: 'left',
               }}
             >
-              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>DISTANCE</span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{stats.distance} m</div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{stats.distance} m</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>CLOSE CALLS</span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0284c7' }}>{stats.closeCalls}</div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7' }}>{stats.closeCalls}</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>ENERGY RINGS</span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#10b981' }}>{stats.rings}</div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#10b981' }}>{stats.rings}</div>
               </div>
-              <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>OVERCLOCK BURSTS</span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f59e0b' }}>{stats.overclocks}</div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#f59e0b' }}>{stats.overclocks}</div>
               </div>
             </div>
 
-            {/* Reboot CTA */}
-            <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
-              <RotateCcw size={18} /> REBOOT FLIGHT [SPACE]
+            {/* CTAs */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button className="cyber-btn" onClick={startGame} style={{ width: '100%' }}>
+                <RotateCcw size={16} /> REBOOT FLIGHT [SPACE]
+              </button>
+              <button
+                className="cyber-btn cyber-btn-gold"
+                onClick={() => setIsLeaderboardOpen(true)}
+                style={{ width: '100%' }}
+              >
+                <Trophy size={16} /> SUBMIT TO $1,000 LEADERBOARD
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* $1,000 USDT ALL-TIME LEADERBOARD MODAL */}
+      {isLeaderboardOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 30,
+            background: 'rgba(2, 44, 94, 0.65)',
+            backdropFilter: 'blur(12px)',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <div className="cyber-card" style={{ maxWidth: '580px' }}>
+            {/* Modal Close Button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="badge-chrono overclock">CHAMPIONSHIP POOL</span>
+              </div>
+              <button
+                className="icon-btn"
+                onClick={() => setIsLeaderboardOpen(false)}
+                style={{ border: 'none', background: '#f1f5f9' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Grand Prize Header */}
+            <div className="prize-hero-banner">
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 900, color: '#92400e', letterSpacing: '1.5px' }}>
+                  GRAND PRIZE POOL
+                </div>
+                <div className="hud-title-font" style={{ fontSize: '26px', color: '#78350f', fontWeight: 900 }}>
+                  1,000 $USDT
+                </div>
+                <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
+                  Awarded directly to the #1 All-Time Pilot!
+                </div>
+              </div>
+              <Coins size={44} color="#d97706" />
+            </div>
+
+            {/* The Viral Mood Schedule Rule Banner */}
+            <div className="mood-rule-banner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0369a1', fontWeight: 800, fontSize: '13px' }}>
+                <Clock size={16} />
+                <span>OFFICIAL PAYOUT SCHEDULE</span>
+              </div>
+              <div
+                style={{
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  margin: '6px 0 4px',
+                  fontFamily: 'Orbitron',
+                }}
+              >
+                "A result will announce when my mood hits to give."
+              </div>
+              <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
+                No corporate deadlines. When the creator feels the vibe, 1,000 USDT is transferred to whoever holds the #1 spot on this leaderboard.
+              </div>
+
+              {/* Dynamic Creator Mood Meter */}
+              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 800 }}>
+                  <span style={{ color: '#0284c7' }}>{MOOD_QUOTES[moodIndex]}</span>
+                  <button
+                    onClick={() => setMoodIndex((prev) => (prev + 1) % MOOD_QUOTES.length)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0369a1',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Check Vibe 🔄
+                  </button>
+                </div>
+                <div className="mood-meter-bar">
+                  <div
+                    className="mood-meter-fill"
+                    style={{ width: `${((moodIndex + 1) / MOOD_QUOTES.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pilot Registration / Score Submission Form */}
+            <form onSubmit={handleScoreSubmit} style={{ marginBottom: '20px', textAlign: 'left' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={14} color="#0284c7" />
+                <span>SUBMIT YOUR SCORE (HIGH SCORE: {Math.max(score, highScore)})</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr auto', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Pilot Call Sign"
+                  className="input-field"
+                  value={pilotName}
+                  onChange={(e) => setPilotName(e.target.value)}
+                  maxLength={18}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="USDT Wallet (TRC20/ERC20)"
+                  className="input-field"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                />
+                <button type="submit" className="cyber-btn" style={{ padding: '10px 16px', fontSize: '12px', height: '100%' }}>
+                  SUBMIT
+                </button>
+              </div>
+              {submitSuccess && (
+                <div style={{ color: '#16a34a', fontSize: '12px', fontWeight: 800, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={14} /> Score submitted! You are registered on the global board.
+                </div>
+              )}
+            </form>
+
+            {/* All-Time Leaderboard Ranks */}
+            <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '1px', marginBottom: '8px' }}>
+                ALL-TIME TOP PILOTS
+              </div>
+              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                {leaderboardData.map((item) => (
+                  <div
+                    key={`${item.rank}-${item.name}`}
+                    className={`leaderboard-table-row ${item.rank === 1 ? 'rank-1' : ''} ${item.isUser ? 'current-user' : ''}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span
+                        className="hud-title-font"
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: 900,
+                          minWidth: '24px',
+                          color: item.rank === 1 ? '#d97706' : item.rank === 2 ? '#64748b' : item.rank === 3 ? '#b45309' : '#0f172a',
+                        }}
+                      >
+                        #{item.rank}
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {item.name}
+                          {item.rank === 1 && (
+                            <span style={{ fontSize: '10px', background: '#f59e0b', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                              👑 1,000 USDT LEAD
+                            </span>
+                          )}
+                          {item.isUser && (
+                            <span style={{ fontSize: '10px', background: '#0284c7', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
+                          Wallet: {item.wallet}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hud-title-font" style={{ fontSize: '18px', fontWeight: 900, color: '#0284c7' }}>
+                      {item.score.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Close / Resume Button */}
+            <button
+              className="cyber-btn cyber-btn-secondary"
+              onClick={() => setIsLeaderboardOpen(false)}
+              style={{ width: '100%' }}
+            >
+              CLOSE LEADERBOARD
             </button>
           </div>
         </div>

@@ -103,12 +103,14 @@ body, html, #root {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .hud-chip {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 8px 32px rgba(2, 44, 94, 0.22), 0 0 16px rgba(0, 243, 255, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8px 32px rgba(2, 44, 94, 0.22), 0 0 16px rgba(0, 243, 255, 0.3);
   backdrop-filter: blur(16px);
   padding: 8px 16px;
   border-radius: 12px;
@@ -120,6 +122,10 @@ body, html, #root {
 
 .hud-chip-left {
   border-left: 4px solid #0284c7;
+}
+
+.hud-chip-center {
+  pointer-events: auto;
 }
 
 .hud-chip-right {
@@ -182,7 +188,7 @@ body, html, #root {
 /* Overclock Energy Meter */
 .overclock-meter {
   position: relative;
-  width: 130px;
+  width: 110px;
   height: 12px;
   background: rgba(15, 23, 42, 0.15);
   border: 1px solid rgba(15, 23, 42, 0.25);
@@ -197,19 +203,68 @@ body, html, #root {
   transition: width 0.15s ease-out;
 }
 
+/* Golden Prize Button in HUD */
+.prize-hud-btn {
+  background: linear-gradient(135deg, #fef08a, #f59e0b);
+  border: 1px solid #fbbf24;
+  color: #78350f;
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+  transition: all 0.2s ease;
+  animation: prizeGlow 2s infinite alternate;
+}
+
+.prize-hud-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.8);
+  background: linear-gradient(135deg, #fef9c3, #d97706);
+}
+
+@keyframes prizeGlow {
+  0% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+  100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.7); }
+}
+
 /* Interactive Card Modals */
 .cyber-card {
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   border: 2px solid rgba(255, 255, 255, 0.98);
   box-shadow: 0 24px 64px rgba(2, 44, 94, 0.28), 0 0 32px rgba(0, 243, 255, 0.35);
   backdrop-filter: blur(24px);
   border-radius: 20px;
-  padding: 32px;
-  max-width: 500px;
-  width: 90%;
+  padding: 28px;
+  max-width: 520px;
+  width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
   pointer-events: auto;
   text-align: center;
   color: #0f172a;
+}
+
+/* Custom Scrollbar for Leaderboard */
+.cyber-card::-webkit-scrollbar {
+  width: 6px;
+}
+.cyber-card::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+.cyber-card::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.cyber-card::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Premium Action Buttons */
@@ -218,10 +273,10 @@ body, html, #root {
   color: #ffffff;
   font-family: 'Orbitron', monospace;
   font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 2px;
+  font-size: 14px;
+  letter-spacing: 1.5px;
   border: none;
-  padding: 14px 28px;
+  padding: 13px 24px;
   border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
@@ -241,6 +296,17 @@ body, html, #root {
 
 .cyber-btn:active {
   transform: translateY(1px) scale(0.98);
+}
+
+.cyber-btn-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.45);
+}
+
+.cyber-btn-gold:hover {
+  background: linear-gradient(135deg, #fbbf24, #b45309);
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.65);
 }
 
 .cyber-btn-secondary {
@@ -275,4 +341,89 @@ body, html, #root {
   background: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
+}
+
+/* Leaderboard Specific Elements */
+.prize-hero-banner {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 2px solid #f59e0b;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
+}
+
+.mood-rule-banner {
+  background: #f8fafc;
+  border: 1.5px dashed #0284c7;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.mood-meter-bar {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.mood-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #10b981, #f59e0b);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.leaderboard-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.15s ease;
+}
+
+.leaderboard-table-row:hover {
+  transform: translateX(3px);
+  background: #f1f5f9;
+}
+
+.leaderboard-table-row.rank-1 {
+  background: linear-gradient(90deg, #fffbeb, #fef3c7);
+  border: 2px solid #f59e0b;
+}
+
+.leaderboard-table-row.current-user {
+  background: #e0f2fe;
+  border: 2px solid #0284c7;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
 }
